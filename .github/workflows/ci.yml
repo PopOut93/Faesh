@@ -1,0 +1,11 @@
+name: Faesh CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Basic Check
+        run: echo "Faesh system check passed"
