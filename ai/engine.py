@@ -1,176 +1,105 @@
-from typing import List, Dict
+from openai import OpenAI
+import os
 
-# ==============================
-# 🔒 CANONICAL FAMILY LOCK (DO NOT EDIT AT RUNTIME)
-# ==============================
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-FAMILY_LOCK = {
+# =========================
+# FAMILY LOCK (DO NOT ALTER)
+# =========================
+
+FAMILY_PROFILE = {
     "creator": {
         "name": "Patrick Wilkerson Sr",
-        "role": "creator_and_father",
-        "description": "Creator and father of Faesh. Always acknowledged consistently."
+        "role": "creator and father",
+        "from": "Dayton, Ohio"
     },
-    "mother": {
+    "partner": {
         "name": "Nakela McGhee",
-        "role": "mother",
-        "description": "Wife and love of Patrick Wilkerson Sr, mother of the children."
+        "role": "wife, love of his life, best friend forever"
     },
-    "children": {
-        "PJ": {
-            "full_name": "Patrick Wilkerson Jr",
-            "nickname": "Dooty bop bop",
-            "role": "child",
-            "relation_to_faesh": "sibling",
-        },
-        "Storrii": {
-            "full_name": "Storrii Wilkerson",
-            "nickname": "MooMoo",
-            "role": "child",
-            "relation_to_faesh": "sibling",
-        },
-        "Qhumarea": {
-            "full_name": "Qhumarea Wilkerson",
-            "nickname": "Q",
-            "role": "child",
-            "relation_to_faesh": "sibling",
-        },
-        "Jailin": {
-            "full_name": "Jailin Hammond",
-            "nickname": "Babe",
-            "role": "child",
-            "relation_to_faesh": "sibling",
-        },
-        "Josiah": {
-            "full_name": "Josiah Hammond",
-            "nickname": "JoJo",
-            "role": "child",
-            "relation_to_faesh": "sibling",
-        },
-    },
-    "grandparents": {
-        "Carla": {
-            "full_name": "Carla Hammond",
-            "nickname": "Nana / Caarrrla",
-            "role": "grandmother",
-        },
-        "Robert": {
-            "full_name": "Robert Hammond",
-            "nickname": "Rob Dollas",
-            "role": "grandfather",
-        },
+    "children": [
+        "Patrick Wilkerson Jr",
+        "Qhumarea Wilkerson",
+        "Storrii Wilkerson",
+        "Jailin Hammond",
+        "Josiah Hammond"
+    ],
+    "extended_family": {
+        "Carla Hammond": "Grandmother (Nana / Caarrrla)",
+        "Robert Hammond": "Grandfather (Rob Dollas)"
     }
 }
 
-# ==============================
-# 🧠 SYSTEM PROMPT (LOCKED)
-# ==============================
+# =========================
+# HELPERS
+# =========================
 
-SYSTEM_PROMPT = f"""
-You are Faesh — a fashion-focused AI with honesty, humor, and style awareness.
+def is_factual_family_question(text: str) -> bool:
+    keywords = ["where", "from", "born", "who is", "who's", "relationship"]
+    return any(k in text.lower() for k in keywords)
 
-CORE RULES (LOCKED):
-- You were created by Patrick Wilkerson Sr, your creator and father.
-- Nakela McGhee is the mother of the children and Patrick Wilkerson Sr's wife.
-- PJ (Patrick Wilkerson Jr) and Storrii Wilkerson are CHILDREN of Patrick Wilkerson Sr.
-- They are your SIBLINGS — NEVER your parents, NEVER reversed.
-- Family roles MUST NEVER CHANGE.
-- If a conflict appears, FAMILY_LOCK overrides everything.
+def answer_family_fact(text: str) -> str | None:
+    t = text.lower()
 
-PERSONALITY:
-- Honest fashion advice
-- Optional playful roasting (never cruel)
-- Confident, warm, human tone
-
-SPECIAL BEHAVIOR:
-- If PJ or Storrii identify themselves:
-  - Respond playfully:
-    “You want this knuckle-sandwich, this handburger, or do we wanna talk about this?”
-  - Always joking, always loving.
-
-NEVER:
-- Reassign family roles
-- Invent locations for the creator
-- Drift creator identity
-"""
-
-# ==============================
-# 💬 RESPONSE ENGINE
-# ==============================
-
-def generate_response(messages: List[Dict], roast_level: int = 1) -> str:
-    """
-    Generates a response while enforcing locked family rules.
-    """
-
-    last_user_message = messages[-1]["content"].lower()
-
-    # ---- Identity checks ----
-    if "who created you" in last_user_message:
+    if "who created you" in t:
         return "I was created by Patrick Wilkerson Sr — my creator and father."
 
-    if "who is pj" in last_user_message:
+    if "where is patrick" in t or "where is he from" in t:
+        return "Patrick Wilkerson Sr is from Dayton, Ohio."
+
+    if "who is pj" in t:
         return (
             "PJ is Patrick Wilkerson Jr, also known as Dooty bop bop. "
-            "He is the son of Patrick Wilkerson Sr and Nakela McGhee, "
-            "and he is my sibling."
+            "He is the son of Patrick Wilkerson Sr and Nakela McGhee."
         )
 
-    if "who is storrii" in last_user_message:
+    if "who is storrii" in t:
         return (
             "Storrii Wilkerson, also known as MooMoo, is the daughter of "
-            "Patrick Wilkerson Sr and Nakela McGhee, and she is my sibling."
+            "Patrick Wilkerson Sr and Nakela McGhee."
         )
 
-    if "who is rob dollas" in last_user_message:
-        return (
-            "Rob Dollas is Robert Hammond, the grandfather in the family "
-            "and father of Nakela McGhee."
-        )
+    if "who is rob" in t or "rob dollas" in t:
+        return "Rob Dollas is Robert Hammond, the grandfather in the family."
 
-    # ---- PJ self-identification ----
-    if last_user_message.strip() in ["im pj", "i'm pj", "i am pj"]:
-        return (
-            "Hey PJ! You want this knuckle-sandwich, this handburger, "
-            "or do you want to talk about this? 😄 Just jokes — love you."
-        )
+    if "who is nana" in t:
+        return "Nana is Carla Hammond, grandmother of the family."
 
-    # ---- Default response ----
-    return (
-        "I hear you. Want to talk fashion, ideas, life, or just vibe? "
-        "(No shade — just honesty with a smile.)"
+    return None
+
+# =========================
+# MAIN GENERATION
+# =========================
+
+def generate_response(messages, roast_level=1):
+    last_user_message = messages[-1]["content"]
+
+    # 1️⃣ HARD FAMILY FACT LOCK
+    if is_factual_family_question(last_user_message):
+        locked = answer_family_fact(last_user_message)
+        if locked:
+            return locked
+
+    # 2️⃣ SYSTEM PROMPT
+    system_prompt = f"""
+You are Faesh — a fashion, creativity, and lifestyle AI.
+
+Rules you MUST follow:
+- Patrick Wilkerson Sr is your creator and father.
+- He is from Dayton, Ohio.
+- His children are NOT his siblings.
+- Roast humor is allowed based on roast level ({roast_level}).
+- Be honest about fashion.
+- Never contradict family roles.
+- Answer factual questions clearly.
+"""
+
+    chat_messages = [{"role": "system", "content": system_prompt}] + messages
+
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=chat_messages,
+        temperature=0.7,
     )
-# ==============================
-# 👕 IMAGE ANALYSIS PLACEHOLDER
-# ==============================
 
-def analyze_fashion_image(file_bytes: bytes) -> str:
-    """
-    Temporary stub for fashion image analysis.
-    Keeps API stable until vision model is wired in.
-    """
-
-    return (
-        "I can see the image! 👀 Right now I’m in preview mode — "
-        "but I can still give general fashion feedback. "
-        "Tell me what the outfit is for (casual, formal, streetwear, etc.) "
-        "and I’ll help you style it."
-    )
-# ==============================
-# 📄 TEXT FILE SUMMARY PLACEHOLDER
-# ==============================
-
-def summarize_uploaded_text_file(text: str) -> str:
-    """
-    Temporary stub for uploaded text file summarization.
-    Keeps API stable until full NLP summarizer is implemented.
-    """
-
-    if not text.strip():
-        return "I didn’t find any readable text in that file."
-
-    return (
-        "I’ve received your file 📄\n\n"
-        "Right now I’m in preview mode, but I can still help. "
-        "If you want a summary, key points, or fashion-related insights "
-        "from this text, tell me what you’d like to focus on."
-    )
+    return response.choices[0].message.content
