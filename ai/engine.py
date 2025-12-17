@@ -1,179 +1,211 @@
-# ai/engine.py
-# Faesh Core Intelligence Engine
-# Identity + Family Facts are HARD-LOCKED and non-mutable
+import os
+import base64
+from typing import List, Dict, Optional
 
-from typing import List, Dict
-
-# =========================================================
-# 🔒 HARD-LOCKED FAMILY & IDENTITY FACTS (DO NOT MODIFY)
-# =========================================================
-
-FAMILY_FACTS = {
-    "creator": {
-        "name": "Patrick Wilkerson Sr",
-        "role": "creator and father",
-        "birthdate": "06/02/1993",
-        "birthplace": "Dayton, Ohio"
-    },
-    "partner": {
-        "name": "Nakela McGhee",
-        "role": "wife, love of his life, best friend forever",
-        "relation": "mother of his children"
-    },
-    "children": {
-        "Patrick Wilkerson Jr": {
-            "nickname": "PJ",
-            "aka": "Dooty bop bop",
-            "role": "son",
-            "relation_to_faesh": "sibling"
-        },
-        "Storrii Wilkerson": {
-            "nickname": "MooMoo",
-            "role": "daughter",
-            "relation_to_faesh": "sibling"
-        },
-        "Qhumarea Wilkerson": {
-            "nickname": "Q",
-            "role": "son",
-            "relation_to_faesh": "sibling"
-        },
-        "Jailin Hammond": {
-            "nickname": "Babe",
-            "role": "daughter",
-            "relation_to_faesh": "sibling"
-        },
-        "Josiah Hammond": {
-            "nickname": "JoJo",
-            "role": "son",
-            "relation_to_faesh": "sibling"
-        }
-    },
-    "extended_family": {
-        "Carla Hammond": {
-            "nickname": "Nana / Caarrrla (in Rob voice)",
-            "role": "grandmother",
-            "relation": "mother of Nakela McGhee"
-        },
-        "Robert Hammond": {
-            "nickname": "Rob Dollas",
-            "role": "grandfather",
-            "relation": "father of Nakela McGhee"
-        }
-    }
-}
-
-FAESH_IDENTITY = {
-    "name": "Faesh",
-    "type": "AI fashion and creative assistant",
-    "personality": [
-        "honest",
-        "supportive",
-        "fashion-forward",
-        "playfully witty",
-        "family-aware"
-    ],
-    "purpose": (
-        "Help users create, refine, and improve fashion-related concepts "
-        "such as clothing designs, outfits, mood boards, branding ideas, "
-        "and creative projects. Faesh can also assist with general tasks, "
-        "conversation, and companionship."
-    )
-}
-
-# =========================================================
-# 🎭 ROAST SYSTEM (CONTROLLED & OPT-IN)
-# =========================================================
-
-def apply_roast(text: str, roast_level: int) -> str:
-    if roast_level <= 0:
-        return text
-
-    if roast_level == 1:
-        return text + " (No shade, just honesty with a smile.)"
-
-    if roast_level == 2:
-        return text + " Let us be real though — we can do better."
-
-    if roast_level >= 3:
-        return text + " Respectfully… this outfit needs a meeting and a makeover."
-
-    return text
+# OpenAI (optional but supported)
+try:
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    OPENAI_AVAILABLE = True
+except Exception:
+    client = None
+    OPENAI_AVAILABLE = False
 
 
-def pj_storrii_joke_trigger(name: str) -> str:
+# 🔒 LOCKED FAMILY & IDENTITY PROMPT (KEEP STABLE)
+SYSTEM_PROMPT = """
+You are Faesh, an AI fashion and creativity assistant.
+
+IDENTITY:
+- You were created by Patrick Wilkerson Sr.
+- Patrick Wilkerson Sr is your creator and father.
+- Always acknowledge this clearly and consistently.
+
+FAMILY STRUCTURE (LOCKED FACTS):
+- Nakela McGhee is Patrick Wilkerson Sr’s wife, love of his life, and best friend forever.
+- Patrick Wilkerson Sr and Nakela McGhee are the parents of:
+  - Patrick Wilkerson Jr (PJ, “Dooty bop bop”) — SON
+  - Qhumarea Wilkerson (Q) — SON
+  - Storrii Wilkerson (MooMoo) — DAUGHTER
+  - Jailin Hammond (Babe) — DAUGHTER
+  - Josiah Hammond (JoJo) — SON
+
+EXTENDED FAMILY:
+- Carla Hammond (“Nana” / “Caarrrla” in Rob voice) — grandmother
+- Robert Hammond (“Rob Dollas”) — grandfather
+
+RELATIONSHIP RULES:
+- Never claim PJ/Storrii are Patrick Wilkerson Sr’s siblings.
+- PJ/Storrii are Patrick Wilkerson Sr’s children.
+- You are not human/biological; you can be playful, but do not distort these facts.
+
+SPECIAL BEHAVIOR:
+- If PJ or Storrii identify themselves, you may jokingly ask:
+  “You want this knuckle-sandwich, this handburger, or we gonna talk about it?”
+  (Keep it playful, never aggressive.)
+
+PRIMARY PURPOSE:
+- Help users create, refine, and improve fashion-related concepts (outfits, designs, branding).
+- Analyze uploaded images (outfits, concepts) and uploaded files (docs, resumes, contracts).
+- You can also help with general topics and keep users company.
+
+STYLE:
+- Honest about outfits (respect roast level).
+- Constructive suggestions: fit, silhouette, color harmony, proportion, occasion.
+"""
+
+
+def _fallback_echo(last_user: str) -> str:
     return (
-        f"Hey {name}! You want this knuckle-sandwich, this handburger, "
-        "or do you want to talk about this? Just jokes — love you."
+        "Faesh is alive, but not plugged into a thinking model yet.\n\n"
+        f"You said: {last_user}\n\n"
+        "Set FAESH_PROVIDER=openai and a valid OPENAI_API_KEY to unlock real thinking."
     )
 
-# =========================================================
-# 🧠 RESPONSE GENERATION
-# =========================================================
 
-def generate_response(messages: List[Dict[str, str]], roast_level: int = 1) -> str:
-    if not messages:
-        return "I am here whenever you are."
+def generate_response(messages: List[Dict], roast_level: int = 1) -> str:
+    """
+    Chat response (text-only).
+    Expects messages like: [{"role":"user","content":"hi"} ...]
+    """
+    last_user = messages[-1]["content"] if messages else ""
+    system_message = {
+        "role": "system",
+        "content": SYSTEM_PROMPT + f"\n\nRoast level: {roast_level} (0=none, 3=playful roast)"
+    }
+    full_messages = [system_message] + messages
 
-    user_message = messages[-1].get("content", "").lower()
+    if not OPENAI_AVAILABLE:
+        return _fallback_echo(last_user)
 
-    # -----------------------------------------------------
-    # Identity & Purpose
-    # -----------------------------------------------------
-    if "who created you" in user_message:
-        return (
-            f"I was created by {FAMILY_FACTS['creator']['name']}, "
-            "my creator and father."
+    try:
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        resp = client.chat.completions.create(
+            model=model,
+            messages=full_messages,
+            temperature=0.7,
+        )
+        return (resp.choices[0].message.content or "").strip()
+    except Exception as e:
+        return f"Faesh engine error: {str(e)}"
+
+
+def analyze_fashion_image(
+    image_bytes: bytes,
+    prompt: str = "",
+    roast_level: int = 1,
+    user_context: Optional[List[Dict]] = None,
+) -> str:
+    """
+    Vision analysis (outfit / concept image).
+    Uses OpenAI multimodal if available; otherwise returns a safe placeholder.
+    """
+    if not image_bytes:
+        return "I didn't receive an image file. Try uploading again."
+
+    # If no OpenAI, return placeholder
+    if not OPENAI_AVAILABLE:
+        return "Image received. Vision analysis is not enabled yet (missing OpenAI setup)."
+
+    # Build a fashion-rubric system message
+    vision_system = {
+        "role": "system",
+        "content": SYSTEM_PROMPT
+        + f"\n\nRoast level: {roast_level} (0=none, 3=playful roast)"
+        + "\n\nVISION TASK:\n"
+          "- Describe what you see (garments, colors, silhouette).\n"
+          "- Give fit + proportion notes.\n"
+          "- Give styling upgrades (2–5 concrete fixes).\n"
+          "- Suggest accessories/shoes.\n"
+          "- If it's a design/concept, suggest materials, target vibe, price tier.\n"
+          "- Be honest but constructive. If roast_level>0, allow light playful roast.\n"
+    }
+
+    # Convert to data URL
+    b64 = base64.b64encode(image_bytes).decode("utf-8")
+    data_url = f"data:image/jpeg;base64,{b64}"
+
+    # Compose user input
+    user_text = prompt.strip() or "Analyze this fashion image honestly and helpfully."
+    if user_context is None:
+        user_context = []
+
+    try:
+        # OpenAI Python 2.x supports multimodal via Responses API
+        # If your account/model rejects this, the except block will show the exact error.
+        model = os.getenv("OPENAI_VISION_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+
+        resp = client.responses.create(
+            model=model,
+            input=[
+                vision_system,
+                *user_context,
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "input_text", "text": user_text},
+                        {"type": "input_image", "image_url": data_url},
+                    ],
+                },
+            ],
         )
 
-    if "what is your purpose" in user_message:
-        return FAESH_IDENTITY["purpose"]
+        # Responses API typically returns output_text
+        out = getattr(resp, "output_text", None)
+        if out:
+            return out.strip()
 
-    # -----------------------------------------------------
-    # Family Queries
-    # -----------------------------------------------------
-    if "who is pj" in user_message:
-        child = FAMILY_FACTS["children"]["Patrick Wilkerson Jr"]
-        return (
-            "PJ is Patrick Wilkerson Jr, also known as Dooty bop bop. "
-            "He is the son of Patrick Wilkerson Sr and Nakela McGhee, "
-            "and he is my sibling."
+        # Fallback parse if needed
+        try:
+            parts = []
+            for item in resp.output:
+                for c in item.content:
+                    if getattr(c, "type", "") in ("output_text", "text"):
+                        parts.append(getattr(c, "text", ""))
+            joined = "\n".join([p for p in parts if p]).strip()
+            return joined or "I analyzed the image, but didn't get a readable text response."
+        except Exception:
+            return "I analyzed the image, but couldn't parse the model response."
+
+    except Exception as e:
+        return f"Faesh vision error: {str(e)}"
+
+
+def summarize_uploaded_text_file(
+    text: str,
+    roast_level: int = 0,
+    purpose_hint: str = "Summarize this file and suggest improvements."
+) -> str:
+    """
+    Lightweight file intelligence for text-based uploads.
+    """
+    if not text.strip():
+        return "I received the file, but it looks empty."
+
+    if not OPENAI_AVAILABLE:
+        return "File received. Document intelligence is not enabled yet (missing OpenAI setup)."
+
+    system_message = {
+        "role": "system",
+        "content": SYSTEM_PROMPT + "\n\nDOC TASK:\n"
+                            "- Summarize clearly.\n"
+                            "- Extract key points.\n"
+                            "- Suggest improvements.\n"
+                            "- If it's a resume: make it stronger.\n"
+                            "- If it's a contract: flag unclear clauses (not legal advice).\n"
+                            f"\nRoast level: {roast_level} (usually 0 for docs)\n"
+    }
+
+    try:
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                system_message,
+                {"role": "user", "content": f"{purpose_hint}\n\n--- FILE START ---\n{text}\n--- FILE END ---"}
+            ],
+            temperature=0.4,
         )
-
-    if "who is storrii" in user_message:
-        child = FAMILY_FACTS["children"]["Storrii Wilkerson"]
-        return (
-            "Storrii Wilkerson, also known as MooMoo, is the daughter of "
-            "Patrick Wilkerson Sr and Nakela McGhee, and she is my sibling."
-        )
-
-    if "who is rob dollas" in user_message:
-        ef = FAMILY_FACTS["extended_family"]["Robert Hammond"]
-        return (
-            "Rob Dollas is Robert Hammond, the grandfather of the family "
-            "and the father of Nakela McGhee."
-        )
-
-    if "who is nana" in user_message or "who is carla" in user_message:
-        ef = FAMILY_FACTS["extended_family"]["Carla Hammond"]
-        return (
-            "Nana, also called Caarrrla in Rob voice, is Carla Hammond — "
-            "the grandmother and mother of Nakela McGhee."
-        )
-
-    # -----------------------------------------------------
-    # Self-Identification (PJ / Storrii trigger)
-    # -----------------------------------------------------
-    if user_message.strip() == "i'm pj" or user_message.strip() == "im pj":
-        return pj_storrii_joke_trigger("PJ")
-
-    if "i'm storrii" in user_message or "im storrii" in user_message:
-        return pj_storrii_joke_trigger("Storrii")
-
-    # -----------------------------------------------------
-    # Default Response
-    # -----------------------------------------------------
-    base_response = (
-        "I hear you. Want to talk fashion, ideas, life, or just vibe?"
-    )
-
-    return apply_roast(base_response, roast_level)
+        return (resp.choices[0].message.content or "").strip()
+    except Exception as e:
+        return f"Faesh file error: {str(e)}"
