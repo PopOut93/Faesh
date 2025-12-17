@@ -139,3 +139,19 @@ def generate_response(messages: List[Dict], roast_level: int = 1) -> str:
         "I hear you. Want to talk fashion, ideas, life, or just vibe? "
         "(No shade — just honesty with a smile.)"
     )
+# ==============================
+# 👕 IMAGE ANALYSIS PLACEHOLDER
+# ==============================
+
+def analyze_fashion_image(file_bytes: bytes) -> str:
+    """
+    Temporary stub for fashion image analysis.
+    Keeps API stable until vision model is wired in.
+    """
+
+    return (
+        "I can see the image! 👀 Right now I’m in preview mode — "
+        "but I can still give general fashion feedback. "
+        "Tell me what the outfit is for (casual, formal, streetwear, etc.) "
+        "and I’ll help you style it."
+    )
