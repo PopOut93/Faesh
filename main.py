@@ -1,35 +1,34 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import List
+import os
+
 from ai.engine import generate_response
 
-app = FastAPI()
+app = FastAPI(title="Faesh Backend")
 
-# ✅ CORS FIX (GitHub Pages + local + Render)
+# 🔥 THIS IS THE IMPORTANT PART
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://popout93.github.io",
-        "http://localhost",
-        "http://localhost:5500"
-    ],
+    allow_origins=["*"],  # allow GitHub Pages + localhost
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+class Message(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
-    messages: list
-    roast_level: int = 1
+    messages: List[Message]
 
 @app.get("/")
-def root():
-    return {"status": "Faesh is alive 🧠✨"}
+def health():
+    return {"status": "Faesh backend is live"}
 
 @app.post("/chat")
 def chat(req: ChatRequest):
-    response = generate_response(
-        messages=req.messages,
-        roast_level=req.roast_level
-    )
-    return {"response": response}
+    reply = generate_response([m.dict() for m in req.messages])
+    return {"reply": reply}
