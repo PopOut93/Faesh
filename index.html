@@ -7,116 +7,107 @@
     body {
       font-family: Arial, sans-serif;
       background: #0f0f0f;
-      color: white;
+      color: #fff;
       margin: 0;
       padding: 0;
     }
-
     #chat {
-      max-width: 800px;
+      max-width: 700px;
       margin: 20px auto;
       padding: 10px;
     }
-
     .message {
-      padding: 10px 14px;
-      margin: 8px 0;
-      border-radius: 14px;
-      max-width: 70%;
-      line-height: 1.4;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 8px;
+      max-width: 80%;
     }
-
     .user {
       background: #2563eb;
       margin-left: auto;
-      text-align: right;
     }
-
     .bot {
-      background: #374151;
+      background: #2a2a2a;
       margin-right: auto;
     }
-
-    #inputRow {
+    #controls {
+      max-width: 700px;
+      margin: 10px auto;
       display: flex;
       gap: 10px;
-      max-width: 800px;
-      margin: 20px auto;
-      padding: 10px;
+      align-items: center;
     }
-
     textarea {
-      flex: 1;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      resize: none;
-      font-size: 16px;
+      width: 100%;
+      height: 60px;
     }
-
     button {
-      padding: 10px 20px;
-      border-radius: 10px;
-      border: none;
-      background: #22c55e;
-      color: black;
-      font-size: 16px;
+      padding: 10px;
       cursor: pointer;
+    }
+    input[type="range"] {
+      width: 150px;
     }
   </style>
 </head>
-<body>
 
+<body>
   <div id="chat"></div>
 
-  <div id="inputRow">
-    <textarea id="input" rows="2" placeholder="Say something to Faesh..."></textarea>
+  <div id="controls">
+    <label>Roast:</label>
+    <input type="range" id="roast" min="0" max="3" value="1" />
+    <span id="roastLabel">Light</span>
+  </div>
+
+  <div id="controls">
+    <textarea id="input" placeholder="Say something to Faesh..."></textarea>
     <button onclick="sendMessage()">Send</button>
   </div>
 
-  <script>
-    const chat = document.getElementById("chat");
+<script>
+const chat = document.getElementById("chat");
+const roastSlider = document.getElementById("roast");
+const roastLabel = document.getElementById("roastLabel");
 
-    function addMessage(text, sender) {
-      const div = document.createElement("div");
-      div.className = "message " + sender;
-      div.textContent = text;
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
-    }
+const roastMap = ["None", "Light", "Medium", "Savage"];
 
-    async function sendMessage() {
-      const input = document.getElementById("input");
-      const message = input.value.trim();
-      if (!message) return;
+roastSlider.oninput = () => {
+  roastLabel.textContent = roastMap[roastSlider.value];
+};
 
-      addMessage(message, "user");
-      input.value = "";
+function addMessage(text, role) {
+  const div = document.createElement("div");
+  div.className = "message " + role;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
 
-      try {
-        const res = await fetch("https://faesh.onrender.com/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            message: message   // 🔑 MUST be called "message"
-          })
-        });
+async function sendMessage() {
+  const input = document.getElementById("input");
+  const text = input.value.trim();
+  if (!text) return;
 
-        if (!res.ok) {
-          throw new Error("Server returned " + res.status);
-        }
+  addMessage(text, "user");
+  input.value = "";
 
-        const data = await res.json();
-        addMessage(data.response, "bot");
+  try {
+    const res = await fetch("https://faesh.onrender.com/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: text }],
+        roast_level: roastSlider.value
+      })
+    });
 
-      } catch (err) {
-        addMessage("Faesh engine error: " + err.message, "bot");
-        console.error(err);
-      }
-    }
-  </script>
-
+    const data = await res.json();
+    addMessage(data.reply, "bot");
+  } catch (err) {
+    addMessage("Faesh is thinking too hard… try again.", "bot");
+  }
+}
+</script>
 </body>
 </html>
