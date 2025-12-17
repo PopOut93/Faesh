@@ -29,19 +29,18 @@ class ChatRequest(BaseModel):
     system: Optional[str] = None
     temperature: float = 0.7
 
+
 @app.get("/")
 def health():
     return {"status": "Faesh backend is live"}
+
+
+@app.head("/")
+def health_head():
+    return
+
 
 @app.post("/chat")
 def chat(req: ChatRequest):
     reply = generate_response([m.dict() for m in req.messages])
     return {"reply": reply}
-    @app.head("/")
-def health_head():
-    return
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("PORT", "10000"))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
