@@ -109,7 +109,22 @@
         const data = await response.json();
 
         // Replace "Thinking..." with actual reply
-        chat.lastChild.textContent = data.reply;
+       // Replace "Thinking..." with typing effect
+const botBubble = chat.lastChild;
+botBubble.textContent = "";
+
+const text = data.reply;
+let i = 0;
+
+const interval = setInterval(() => {
+  botBubble.textContent += text[i];
+  chat.scrollTop = chat.scrollHeight;
+  i++;
+  if (i >= text.length) {
+    clearInterval(interval);
+  }
+}, 25);
+
       } catch (err) {
         chat.lastChild.textContent = "Error: " + err.message;
       }
