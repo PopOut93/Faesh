@@ -1,85 +1,37 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Dict, Optional
+from ai.engine import generate_response
 
-from ai.engine import (
-    generate_response,
-    analyze_fashion_image,
-    summarize_uploaded_text_file,
-)
+app = FastAPI()
 
-app = FastAPI(title="Faesh Backend", version="1.0.0")
-
-# ✅ CORS (GitHub Pages + local dev)
+# =========================
+# CORS (FIXED)
+# =========================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://popout93.github.io",
-        "http://localhost:3000",
-        "http://127.0.0.1:5500",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-class ChatRequest(BaseModel):
-    messages: List[Dict]
-    roast_level: Optional[int] = 1
-
-
-@app.get("/")
-def health():
-    return {"status": "Faesh is alive"}
-
+# =========================
+# CHAT ENDPOINT
+# =========================
 
 @app.post("/chat")
-def chat(req: ChatRequest):
-    reply = generate_response(req.messages, req.roast_level or 1)
-    return {"reply": reply}
-
-
-@app.post("/vision")
-async def vision(
-    image: UploadFile = File(...),
-    prompt: str = Form(""),
-    roast_level: int = Form(1),
+async def chat(
+    message: str = Form(...),
+    roast_level: int = Form(1)
 ):
-    img_bytes = await image.read()
-    reply = analyze_fashion_image(
-        image_bytes=img_bytes,
-        prompt=prompt,
-        roast_level=roast_level,
-    )
-    return {"reply": reply, "filename": image.filename}
+    messages = [{"role": "user", "content": message}]
+    reply = generate_response(messages, roast_level)
+    return {"response": reply}
 
+# =========================
+# FILE UPLOAD PLACEHOLDER
+# =========================
 
 @app.post("/upload")
-async def upload(
-    file: UploadFile = File(...),
-    purpose: str = Form("Summarize this file and suggest improvements."),
-):
-    data = await file.read()
-
-    try:
-        text = data.decode("utf-8", errors="ignore")
-    except Exception:
-        text = ""
-
-    if not text.strip():
-        return {
-            "reply": (
-                "File received. I currently analyze text-based files best "
-                "(txt, csv, json). PDF/DOCX parsing can be added next."
-            ),
-            "filename": file.filename,
-        }
-
-    reply = summarize_uploaded_text_file(
-        text=text,
-        roast_level=0,
-        purpose_hint=purpose,
-    )
-    return {"reply": reply, "filename": file.filename}
+async def upload(file: UploadFile):
+    return {"filename": file.filename}
