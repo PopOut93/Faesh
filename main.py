@@ -1,23 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
+import base64
 import os
 
-# Import Faesh brain
 from ai.engine import generate_response
 
-app = FastAPI(title="Faesh Backend", version="1.0.0")
+app = FastAPI(title="Faesh Backend", version="1.1.0")
 
-# =========================
-# 🌍 CORS CONFIG (FIX)
-# =========================
-
-# Allow GitHub Pages + local dev
+# CORS (GitHub Pages + local)
 origins = [
-    "https://popout93.github.io",
     "http://localhost:3000",
-    "http://localhost:5173",
+    "https://popout93.github.io"
 ]
 
 app.add_middleware(
@@ -28,8 +23,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # =========================
-# 📦 REQUEST MODELS
+# MODELS
 # =========================
 
 class Message(BaseModel):
@@ -38,31 +34,48 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[Message]
-    system: Optional[str] = None
-    temperature: float = 0.7
+    temperature: Optional[float] = 0.7
 
 
 # =========================
-# 🩺 HEALTH CHECK
+# HEALTH
 # =========================
 
 @app.get("/")
+@app.head("/")
 def health():
     return {"status": "Faesh backend is live"}
 
-@app.head("/")
-def health_head():
-    return
-
 
 # =========================
-# 💬 CHAT ENDPOINT
+# CHAT ENDPOINT
 # =========================
 
 @app.post("/chat")
 def chat(req: ChatRequest):
-    reply = generate_response(
-        [m.dict() for m in req.messages],
-        temperature=req.temperature,
-    )
+    messages = [m.dict() for m in req.messages]
+    reply = generate_response(messages, req.temperature)
+    return {"reply": reply}
+
+
+# =========================
+# VISION ENDPOINT (IMAGE UPLOAD)
+# =========================
+
+@app.post("/vision")
+async def vision(file: UploadFile = File(...)):
+    image_bytes = await file.read()
+    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "input_text", "text": "Be honest and critique this outfit."},
+                {"type": "input_image", "image_base64": image_b64}
+            ]
+        }
+    ]
+
+    reply = generate_response(messages)
     return {"reply": reply}
