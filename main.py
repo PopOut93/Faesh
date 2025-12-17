@@ -37,6 +37,9 @@ def health():
 def chat(req: ChatRequest):
     reply = generate_response([m.dict() for m in req.messages])
     return {"reply": reply}
+    @app.head("/")
+def health_head():
+    return
 
 if __name__ == "__main__":
     import uvicorn
