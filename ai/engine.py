@@ -155,3 +155,22 @@ def analyze_fashion_image(file_bytes: bytes) -> str:
         "Tell me what the outfit is for (casual, formal, streetwear, etc.) "
         "and I’ll help you style it."
     )
+# ==============================
+# 📄 TEXT FILE SUMMARY PLACEHOLDER
+# ==============================
+
+def summarize_uploaded_text_file(text: str) -> str:
+    """
+    Temporary stub for uploaded text file summarization.
+    Keeps API stable until full NLP summarizer is implemented.
+    """
+
+    if not text.strip():
+        return "I didn’t find any readable text in that file."
+
+    return (
+        "I’ve received your file 📄\n\n"
+        "Right now I’m in preview mode, but I can still help. "
+        "If you want a summary, key points, or fashion-related insights "
+        "from this text, tell me what you’d like to focus on."
+    )
