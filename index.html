@@ -1,113 +1,68 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
   <title>Faesh</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f0f0f;
-      color: #fff;
-      margin: 0;
-      padding: 0;
-    }
-    #chat {
-      max-width: 700px;
-      margin: 20px auto;
-      padding: 10px;
-    }
-    .message {
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 8px;
-      max-width: 80%;
-    }
-    .user {
-      background: #2563eb;
-      margin-left: auto;
-    }
-    .bot {
-      background: #2a2a2a;
-      margin-right: auto;
-    }
-    #controls {
-      max-width: 700px;
-      margin: 10px auto;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    textarea {
-      width: 100%;
-      height: 60px;
-    }
-    button {
-      padding: 10px;
-      cursor: pointer;
-    }
-    input[type="range"] {
-      width: 150px;
-    }
+    body { font-family: Arial; background:#111; color:white; }
+    #chat { max-width:600px; margin:auto; }
+    .message.user { color:#4da3ff; }
+    .message.bot { color:#aaa; }
   </style>
 </head>
-
 <body>
-  <div id="chat"></div>
 
-  <div id="controls">
-    <label>Roast:</label>
-    <input type="range" id="roast" min="0" max="3" value="1" />
-    <span id="roastLabel">Light</span>
-  </div>
+<h1>Faesh</h1>
 
-  <div id="controls">
-    <textarea id="input" placeholder="Say something to Faesh..."></textarea>
-    <button onclick="sendMessage()">Send</button>
-  </div>
+<div id="chat"></div>
+
+<textarea id="input" placeholder="Say something to Faesh..."></textarea><br>
+
+<label>Roast level:
+  <input type="range" id="roast" min="0" max="3" value="1">
+</label><br><br>
+
+<button onclick="sendMessage()">Send</button>
+<input type="file" id="imageInput">
+<button onclick="sendImage()">Upload Image</button>
 
 <script>
-const chat = document.getElementById("chat");
-const roastSlider = document.getElementById("roast");
-const roastLabel = document.getElementById("roastLabel");
-
-const roastMap = ["None", "Light", "Medium", "Savage"];
-
-roastSlider.oninput = () => {
-  roastLabel.textContent = roastMap[roastSlider.value];
-};
-
-function addMessage(text, role) {
-  const div = document.createElement("div");
-  div.className = "message " + role;
-  div.textContent = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-}
+const chatDiv = document.getElementById("chat");
 
 async function sendMessage() {
   const input = document.getElementById("input");
-  const text = input.value.trim();
-  if (!text) return;
-
-  addMessage(text, "user");
+  const roast = document.getElementById("roast").value;
+  const text = input.value;
   input.value = "";
 
-  try {
-    const res = await fetch("https://faesh.onrender.com/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: [{ role: "user", content: text }],
-        roast_level: roastSlider.value
-      })
-    });
+  chatDiv.innerHTML += `<div class="message user">${text}</div>`;
 
-    const data = await res.json();
-    addMessage(data.reply, "bot");
-  } catch (err) {
-    addMessage("Faesh is thinking too hard… try again.", "bot");
-  }
+  const res = await fetch("https://faesh.onrender.com/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messages: [{ role: "user", content: text }],
+      roast_level: Number(roast)
+    })
+  });
+
+  const data = await res.json();
+  chatDiv.innerHTML += `<div class="message bot">${data.reply}</div>`;
+}
+
+async function sendImage() {
+  const file = document.getElementById("imageInput").files[0];
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch("https://faesh.onrender.com/vision", {
+    method: "POST",
+    body: form
+  });
+
+  const data = await res.json();
+  chatDiv.innerHTML += `<div class="message bot">${data.analysis}</div>`;
 }
 </script>
+
 </body>
 </html>
