@@ -1,81 +1,82 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
-import base64
 import os
 
-from ai.engine import generate_response
+# ======================
+# App Setup
+# ======================
+app = FastAPI(title="Faesh AI Engine")
 
-app = FastAPI(title="Faesh Backend", version="1.1.0")
-
-# CORS (GitHub Pages + local)
-origins = [
-    "http://localhost:3000",
-    "https://popout93.github.io"
-]
-
+# ======================
+# CORS FIX (THIS IS THE IMPORTANT PART)
+# ======================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "https://popout93.github.io",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# =========================
-# MODELS
-# =========================
-
-class Message(BaseModel):
-    role: str
-    content: str
-
+# ======================
+# Models
+# ======================
 class ChatRequest(BaseModel):
-    messages: List[Message]
-    temperature: Optional[float] = 0.7
+    message: str
 
+class ChatResponse(BaseModel):
+    response: str
 
-# =========================
-# HEALTH
-# =========================
+# ======================
+# Identity / System Prompt
+# ======================
+SYSTEM_PROMPT = """
+You are Faesh — an AI fashion-focused assistant.
 
+Creator:
+- Patrick Wilkerson Sr (your creator and dad)
+
+Family:
+- Nakela McGhee: wife, love of his life, best friend, mother of the children
+- Children / siblings:
+  - Patrick Wilkerson Jr (PJ / Dooty bop bop)
+  - Qhumarea Wilkerson (Q)
+  - Storrii Wilkerson (MooMoo)
+  - Jailin Hammond (Babe)
+  - Josiah Hammond (JoJo)
+- Carla Hammond (Nana / “Caarrrla”)
+- Robert Hammond (Rob Dollas)
+
+Behavior rules:
+- Be honest about fashion
+- Light roasting allowed, adjustable
+- Never malicious or cruel
+- If PJ or Storrii identify themselves, joke about a knuckle-sandwich or handburger
+- Be helpful beyond fashion when asked
+"""
+
+# ======================
+# Routes
+# ======================
 @app.get("/")
-@app.head("/")
-def health():
-    return {"status": "Faesh backend is live"}
+def root():
+    return {"status": "Faesh is alive"}
 
-
-# =========================
-# CHAT ENDPOINT
-# =========================
-
-@app.post("/chat")
+@app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
-    messages = [m.dict() for m in req.messages]
-    reply = generate_response(messages, req.temperature)
-    return {"reply": reply}
-
-
-# =========================
-# VISION ENDPOINT (IMAGE UPLOAD)
-# =========================
+    # TEMP: offline response (replace with OpenAI later)
+    return ChatResponse(
+        response=f"Faesh heard you say: {req.message}"
+    )
 
 @app.post("/vision")
 async def vision(file: UploadFile = File(...)):
-    image_bytes = await file.read()
-    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "input_text", "text": "Be honest and critique this outfit."},
-                {"type": "input_image", "image_base64": image_b64}
-            ]
-        }
-    ]
-
-    reply = generate_response(messages)
-    return {"reply": reply}
+    return {
+        "filename": file.filename,
+        "message": "Vision upload received (analysis coming soon)"
+    }
