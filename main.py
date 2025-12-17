@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -6,41 +6,30 @@ import os
 
 from ai.engine import generate_response
 
-app = FastAPI(title="Faesh Backend", version="1.0.0")
-
-# --- CORS ---
-origins = os.getenv(
-    "FRONTEND_ORIGINS",
-    "https://popout93.github.io,http://localhost:3000"
-).split(",")
+app = FastAPI(title="Faesh Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in origins],
+    allow_origins=[
+        "https://popout93.github.io",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- Models ---
 class Message(BaseModel):
     role: str
     content: str
 
 class ChatRequest(BaseModel):
     messages: List[Message]
-    system: Optional[str] = None
-    temperature: float = 0.7
-    roast_level: Optional[int] = 1  # 👈 FIX (NEW)
+    roast_level: int = 1
 
-# --- Routes ---
 @app.get("/")
 def health():
     return {"status": "Faesh backend is live"}
-
-@app.head("/")
-def health_head():
-    return
 
 @app.post("/chat")
 def chat(req: ChatRequest):
@@ -49,3 +38,9 @@ def chat(req: ChatRequest):
         roast_level=req.roast_level
     )
     return {"reply": reply}
+
+@app.post("/vision")
+async def vision(file: UploadFile = File(...)):
+    return {
+        "analysis": f"Faesh received image: {file.filename}. Vision analysis coming soon."
+    }
