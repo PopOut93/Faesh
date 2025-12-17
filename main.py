@@ -2,20 +2,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-import os
 
 # Import your engine (the brain)
 from ai.engine import generate_response
 
 app = FastAPI(title="Faesh Backend", version="1.0.0")
 
-# Allow your frontend to talk to this backend
-origins = os.getenv("FRONTEND_ORIGINS", "http://localhost:3000").split(",")
-
+# ✅ CORS FIX — allow GitHub Pages and any frontend (safe for now)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in origins],
-    allow_credentials=True,
+    allow_origins=["*"],          # allow all origins
+    allow_credentials=False,      # must be False when using "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -38,6 +35,12 @@ def health():
 @app.head("/")
 def health_head():
     return
+
+
+@app.post("/chat")
+def chat(req: ChatRequest):
+    reply = generate_response([m.dict() for m in req.messages])
+    return {"reply": reply}
 
 
 @app.post("/chat")
