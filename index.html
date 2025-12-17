@@ -3,10 +3,9 @@
 <head>
   <title>Faesh</title>
   <style>
-    body { font-family: Arial; background:#111; color:white; }
-    #chat { max-width:600px; margin:auto; }
-    .message.user { color:#4da3ff; }
-    .message.bot { color:#aaa; }
+    body { font-family: Arial; background:#111; color:#fff }
+    .message.user { color:#4da3ff }
+    .message.bot { color:#ccc }
   </style>
 </head>
 <body>
@@ -15,52 +14,40 @@
 
 <div id="chat"></div>
 
-<textarea id="input" placeholder="Say something to Faesh..."></textarea><br>
-
-<label>Roast level:
-  <input type="range" id="roast" min="0" max="3" value="1">
-</label><br><br>
-
+<input id="input" placeholder="Say something to Faesh..." />
 <button onclick="sendMessage()">Send</button>
-<input type="file" id="imageInput">
-<button onclick="sendImage()">Upload Image</button>
+
+<br><br>
+<label>Roast Level</label>
+<input type="range" id="roast" min="0" max="3" value="1" />
 
 <script>
-const chatDiv = document.getElementById("chat");
-
 async function sendMessage() {
   const input = document.getElementById("input");
+  const chat = document.getElementById("chat");
   const roast = document.getElementById("roast").value;
-  const text = input.value;
+
+  const userText = input.value.trim();
+  if (!userText) return;
+
+  chat.innerHTML += `<div class="message user">${userText}</div>`;
   input.value = "";
 
-  chatDiv.innerHTML += `<div class="message user">${text}</div>`;
+  const payload = {
+    messages: [{ role: "user", content: userText }],
+    roast_level: Number(roast)
+  };
 
   const res = await fetch("https://faesh.onrender.com/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messages: [{ role: "user", content: text }],
-      roast_level: Number(roast)
-    })
+    body: JSON.stringify(payload)
   });
 
   const data = await res.json();
-  chatDiv.innerHTML += `<div class="message bot">${data.reply}</div>`;
-}
 
-async function sendImage() {
-  const file = document.getElementById("imageInput").files[0];
-  const form = new FormData();
-  form.append("file", file);
-
-  const res = await fetch("https://faesh.onrender.com/vision", {
-    method: "POST",
-    body: form
-  });
-
-  const data = await res.json();
-  chatDiv.innerHTML += `<div class="message bot">${data.analysis}</div>`;
+  // ✅ FIXED: response, not message
+  chat.innerHTML += `<div class="message bot">${data.response}</div>`;
 }
 </script>
 
