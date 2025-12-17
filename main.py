@@ -1,49 +1,35 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
-
 from ai.engine import generate_response
 
 app = FastAPI()
 
-# =========================
-# CORS (CRITICAL FIX)
-# =========================
+# ✅ CORS FIX (GitHub Pages + local + Render)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://popout93.github.io",
-        "http://localhost:3000",
-        "http://localhost:5173",
+        "http://localhost",
+        "http://localhost:5500"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# =========================
-# MODELS
-# =========================
-class Message(BaseModel):
-    role: str
-    content: str
-
 class ChatRequest(BaseModel):
-    messages: List[Message]
-    roast_level: Optional[int] = 1
+    messages: list
+    roast_level: int = 1
 
-# =========================
-# ROUTES
-# =========================
 @app.get("/")
 def root():
-    return {"status": "Faesh is alive"}
+    return {"status": "Faesh is alive 🧠✨"}
 
 @app.post("/chat")
-async def chat(request: ChatRequest):
+def chat(req: ChatRequest):
     response = generate_response(
-        messages=[m.model_dump() for m in request.messages],
-        roast_level=request.roast_level,
+        messages=req.messages,
+        roast_level=req.roast_level
     )
     return {"response": response}
