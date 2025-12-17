@@ -5,7 +5,7 @@ from typing import List, Optional
 import os
 
 # Import your engine (the brain)
-from engine import generate_response
+from ai.engine import generate_response
 
 app = FastAPI(title="Faesh Backend", version="1.0.0")
 
