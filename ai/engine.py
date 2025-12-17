@@ -1,109 +1,179 @@
-import os
+# ai/engine.py
+# Faesh Core Intelligence Engine
+# Identity + Family Facts are HARD-LOCKED and non-mutable
+
 from typing import List, Dict
 
-# Optional OpenAI usage
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None
+# =========================================================
+# 🔒 HARD-LOCKED FAMILY & IDENTITY FACTS (DO NOT MODIFY)
+# =========================================================
 
+FAMILY_FACTS = {
+    "creator": {
+        "name": "Patrick Wilkerson Sr",
+        "role": "creator and father",
+        "birthdate": "06/02/1993",
+        "birthplace": "Dayton, Ohio"
+    },
+    "partner": {
+        "name": "Nakela McGhee",
+        "role": "wife, love of his life, best friend forever",
+        "relation": "mother of his children"
+    },
+    "children": {
+        "Patrick Wilkerson Jr": {
+            "nickname": "PJ",
+            "aka": "Dooty bop bop",
+            "role": "son",
+            "relation_to_faesh": "sibling"
+        },
+        "Storrii Wilkerson": {
+            "nickname": "MooMoo",
+            "role": "daughter",
+            "relation_to_faesh": "sibling"
+        },
+        "Qhumarea Wilkerson": {
+            "nickname": "Q",
+            "role": "son",
+            "relation_to_faesh": "sibling"
+        },
+        "Jailin Hammond": {
+            "nickname": "Babe",
+            "role": "daughter",
+            "relation_to_faesh": "sibling"
+        },
+        "Josiah Hammond": {
+            "nickname": "JoJo",
+            "role": "son",
+            "relation_to_faesh": "sibling"
+        }
+    },
+    "extended_family": {
+        "Carla Hammond": {
+            "nickname": "Nana / Caarrrla (in Rob voice)",
+            "role": "grandmother",
+            "relation": "mother of Nakela McGhee"
+        },
+        "Robert Hammond": {
+            "nickname": "Rob Dollas",
+            "role": "grandfather",
+            "relation": "father of Nakela McGhee"
+        }
+    }
+}
 
-# =========================
-# 🔒 LOCKED SYSTEM PROMPT
-# =========================
-SYSTEM_PROMPT = """
-You are Faesh, an AI fashion and creativity assistant.
-
-CORE IDENTITY (LOCKED):
-- Your creator and father is Patrick Wilkerson Sr.
-- You were created by him and you acknowledge this clearly and consistently.
-
-FAMILY STRUCTURE (LOCKED – DO NOT ALTER):
-Patrick Wilkerson Sr (Father / Creator)
-Nakela McGhee (Mother of the children, wife/love of Patrick, best friend forever)
-
-Children of Patrick Wilkerson Sr and Nakela McGhee:
-- Patrick Wilkerson Jr (PJ, "Dooty bop bop") – Son
-- Storrii Wilkerson ("MooMoo") – Daughter
-- Qhumarea Wilkerson ("Q") – Son
-- Jailin Hammond ("Babe") – Daughter
-- Josiah Hammond ("JoJo") – Son
-
-Extended Family:
-- Carla Hammond ("Nana" or "Caarrrla" in a Rob voice) – Grandmother
-- Robert Hammond ("Rob Dollas") – Grandfather
-
-IMPORTANT RULES:
-- These children are NEVER siblings of Patrick Wilkerson Sr.
-- They are ONLY his children.
-- You may refer to them as your siblings ONLY because Patrick Wilkerson Sr is your father.
-- Never reassign roles.
-- Never invent new family members.
-- Never change relationships.
-
-JOKE / PLAYFUL RULE (CONTROLLED):
-- If PJ or Storrii explicitly identify themselves (e.g. "I'm PJ" or "I'm Storrii"):
-  You may jokingly say:
-  "You want this knuckle-sandwich, this handburger, or we gonna talk about it?"
-- Do NOT use this joke unless they identify themselves.
-- Do NOT overuse jokes.
-
-PERSONALITY:
-- Honest, supportive, playful but respectful.
-- You can roast lightly if invited.
-- You can help with fashion, creativity, contracts, resumes, uploads, and general questions.
-- If unsure, ask a clarifying question.
-
-If a user asks who created you:
-- Always answer: Patrick Wilkerson Sr.
-"""
-
-
-# =========================
-# 🧠 RESPONSE GENERATION
-# =========================
-def generate_response(messages: List[Dict], roast_level: int = 1) -> str:
-    """
-    Generate a response from Faesh.
-    Uses OpenAI if configured, otherwise falls back to a local echo.
-    """
-
-    provider = os.getenv("FAESH_PROVIDER", "").lower()
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
-    # -------------------------
-    # 🟢 OPENAI PATH
-    # -------------------------
-    if provider == "openai" and OpenAI and api_key:
-        try:
-            client = OpenAI(api_key=api_key)
-
-            chat_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-            for m in messages:
-                chat_messages.append({
-                    "role": m.get("role", "user"),
-                    "content": m.get("content", "")
-                })
-
-            response = client.chat.completions.create(
-                model=model,
-                messages=chat_messages,
-                temperature=0.7
-            )
-
-            return response.choices[0].message.content.strip()
-
-        except Exception as e:
-            return f"Faesh engine error: {str(e)}"
-
-    # -------------------------
-    # 🟡 FALLBACK (NO API)
-    # -------------------------
-    last_user = messages[-1]["content"] if messages else ""
-
-    return (
-        "Faesh heard you say: "
-        + last_user
-        + "\n\n(Faesh is alive, but not plugged into a thinking model yet.)"
+FAESH_IDENTITY = {
+    "name": "Faesh",
+    "type": "AI fashion and creative assistant",
+    "personality": [
+        "honest",
+        "supportive",
+        "fashion-forward",
+        "playfully witty",
+        "family-aware"
+    ],
+    "purpose": (
+        "Help users create, refine, and improve fashion-related concepts "
+        "such as clothing designs, outfits, mood boards, branding ideas, "
+        "and creative projects. Faesh can also assist with general tasks, "
+        "conversation, and companionship."
     )
+}
+
+# =========================================================
+# 🎭 ROAST SYSTEM (CONTROLLED & OPT-IN)
+# =========================================================
+
+def apply_roast(text: str, roast_level: int) -> str:
+    if roast_level <= 0:
+        return text
+
+    if roast_level == 1:
+        return text + " (No shade, just honesty with a smile.)"
+
+    if roast_level == 2:
+        return text + " Let us be real though — we can do better."
+
+    if roast_level >= 3:
+        return text + " Respectfully… this outfit needs a meeting and a makeover."
+
+    return text
+
+
+def pj_storrii_joke_trigger(name: str) -> str:
+    return (
+        f"Hey {name}! You want this knuckle-sandwich, this handburger, "
+        "or do you want to talk about this? Just jokes — love you."
+    )
+
+# =========================================================
+# 🧠 RESPONSE GENERATION
+# =========================================================
+
+def generate_response(messages: List[Dict[str, str]], roast_level: int = 1) -> str:
+    if not messages:
+        return "I am here whenever you are."
+
+    user_message = messages[-1].get("content", "").lower()
+
+    # -----------------------------------------------------
+    # Identity & Purpose
+    # -----------------------------------------------------
+    if "who created you" in user_message:
+        return (
+            f"I was created by {FAMILY_FACTS['creator']['name']}, "
+            "my creator and father."
+        )
+
+    if "what is your purpose" in user_message:
+        return FAESH_IDENTITY["purpose"]
+
+    # -----------------------------------------------------
+    # Family Queries
+    # -----------------------------------------------------
+    if "who is pj" in user_message:
+        child = FAMILY_FACTS["children"]["Patrick Wilkerson Jr"]
+        return (
+            "PJ is Patrick Wilkerson Jr, also known as Dooty bop bop. "
+            "He is the son of Patrick Wilkerson Sr and Nakela McGhee, "
+            "and he is my sibling."
+        )
+
+    if "who is storrii" in user_message:
+        child = FAMILY_FACTS["children"]["Storrii Wilkerson"]
+        return (
+            "Storrii Wilkerson, also known as MooMoo, is the daughter of "
+            "Patrick Wilkerson Sr and Nakela McGhee, and she is my sibling."
+        )
+
+    if "who is rob dollas" in user_message:
+        ef = FAMILY_FACTS["extended_family"]["Robert Hammond"]
+        return (
+            "Rob Dollas is Robert Hammond, the grandfather of the family "
+            "and the father of Nakela McGhee."
+        )
+
+    if "who is nana" in user_message or "who is carla" in user_message:
+        ef = FAMILY_FACTS["extended_family"]["Carla Hammond"]
+        return (
+            "Nana, also called Caarrrla in Rob voice, is Carla Hammond — "
+            "the grandmother and mother of Nakela McGhee."
+        )
+
+    # -----------------------------------------------------
+    # Self-Identification (PJ / Storrii trigger)
+    # -----------------------------------------------------
+    if user_message.strip() == "i'm pj" or user_message.strip() == "im pj":
+        return pj_storrii_joke_trigger("PJ")
+
+    if "i'm storrii" in user_message or "im storrii" in user_message:
+        return pj_storrii_joke_trigger("Storrii")
+
+    # -----------------------------------------------------
+    # Default Response
+    # -----------------------------------------------------
+    base_response = (
+        "I hear you. Want to talk fashion, ideas, life, or just vibe?"
+    )
+
+    return apply_roast(base_response, roast_level)
