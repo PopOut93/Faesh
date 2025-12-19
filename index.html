@@ -2,29 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Fæsh</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Explicit favicon fix -->
+  <link rel="icon" href="./favicon.ico" type="image/x-icon" />
+
+  <title>Fæsh</title>
 
   <style>
     body {
       margin: 0;
-      background: #0e0e12;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0f0f14;
       color: #fff;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       height: 100vh;
     }
 
-    header {
-      padding: 14px 18px;
+    .app {
+      width: 100%;
+      max-width: 420px;
+      height: 90vh;
       background: #12121a;
-      border-bottom: 1px solid #1f1f2e;
-      font-weight: 700;
-      font-size: 18px;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,.6);
     }
 
-    #chat {
+    header {
+      padding: 14px 16px;
+      font-weight: 700;
+      background: #141420;
+      border-bottom: 1px solid #1f1f2e;
+    }
+
+    .messages {
       flex: 1;
       padding: 16px;
       overflow-y: auto;
@@ -35,121 +51,133 @@
       line-height: 1.4;
     }
 
-    .user {
+    .msg.user {
+      text-align: right;
       color: #9fd3ff;
     }
 
-    .faesh {
-      color: #e6e6ff;
-    }
-
-    footer {
-      border-top: 1px solid #1f1f2e;
-      padding: 10px;
-      display: flex;
-      gap: 6px;
-      background: #12121a;
-    }
-
-    input[type="text"] {
-      flex: 1;
-      padding: 10px;
-      border-radius: 6px;
-      border: none;
-      outline: none;
-      background: #1a1a24;
+    .msg.bot {
+      text-align: left;
       color: #fff;
     }
 
-    button {
-      padding: 10px 12px;
-      border-radius: 6px;
+    .composer {
+      display: flex;
+      gap: 6px;
+      padding: 10px;
+      border-top: 1px solid #1f1f2e;
+      background: #141420;
+    }
+
+    .composer input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background: #1b1b29;
+      color: #fff;
+    }
+
+    .composer button {
+      padding: 10px 14px;
+      border-radius: 8px;
       border: none;
       cursor: pointer;
-      background: #2a2a3d;
+      background: #6c5ce7;
       color: #fff;
       font-weight: 600;
     }
 
-    button:hover {
-      background: #3a3a55;
+    .icons {
+      display: flex;
+      gap: 8px;
+      margin-left: 6px;
     }
 
-    .icon-btn {
-      width: 42px;
+    .icons button {
+      background: #1b1b29;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      color: #fff;
     }
   </style>
 </head>
-
 <body>
 
+<div class="app">
   <header>Fæsh</header>
 
-  <div id="chat"></div>
+  <div id="messages" class="messages"></div>
 
-  <footer>
-    <button class="icon-btn" onclick="document.getElementById('imageInput').click()">🖼️</button>
-    <button class="icon-btn" onclick="document.getElementById('fileInput').click()">📎</button>
-    <input id="userInput" type="text" placeholder="Say something…" />
+  <div class="composer">
+    <input
+      id="input"
+      type="text"
+      placeholder="Say something…"
+      autocomplete="off"
+    />
+
+    <div class="icons">
+      <button title="Upload image">🖼️</button>
+      <button title="Upload file">📎</button>
+    </div>
+
     <button onclick="sendMessage()">Send</button>
-  </footer>
+  </div>
+</div>
 
-  <input type="file" id="imageInput" accept="image/*" hidden />
-  <input type="file" id="fileInput" hidden />
+<script>
+  const messagesEl = document.getElementById("messages");
+  const inputEl = document.getElementById("input");
 
-  <script>
-    const chat = document.getElementById("chat");
-    const input = document.getElementById("userInput");
+  function addMessage(text, role) {
+    const div = document.createElement("div");
+    div.className = `msg ${role}`;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
 
-    function addMessage(text, cls) {
-      const div = document.createElement("div");
-      div.className = "msg " + cls;
-      div.textContent = text;
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
+  // Initial greeting
+  addMessage(
+    "Yo! What’s good? Fæsh here — your fashion and creativity sidekick, created by Patrick Wilkerson Sr. What vibe are we on?",
+    "bot"
+  );
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    addMessage("You: " + text, "user");
+    inputEl.value = "";
+
+    try {
+      const res = await fetch("https://faesh.onrender.com/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
+
+      if (!res.ok) throw new Error("Backend error");
+
+      const data = await res.json();
+      addMessage("Fæsh: " + data.reply, "bot");
+
+    } catch (err) {
+      addMessage("⚠️ Fæsh froze — backend didn’t respond.", "bot");
     }
+  }
 
-    async function sendMessage() {
-      const text = input.value.trim();
-      if (!text) return;
-
-      addMessage("You: " + text, "user");
-      input.value = "";
-
-      try {
-        const res = await fetch("https://faesh.onrender.com/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text })
-        });
-
-        if (!res.ok) {
-          addMessage("⚠️ Faesh froze — backend didn’t respond.", "faesh");
-          return;
-        }
-
-        const data = await res.json();
-        addMessage("Fæsh: " + data.reply, "faesh");
-
-      } catch (err) {
-        addMessage("⚠️ Faesh froze — backend didn’t respond.", "faesh");
-      }
+  // ENTER KEY SEND (restored)
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      sendMessage();
     }
-
-    // ENTER KEY SEND
-    input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
-    // Initial greeting
-    addMessage(
-      "Fæsh: Yo! What’s good? Fæsh here — your fashion and creativity sidekick, created by Patrick Wilkerson Sr. What vibe are we on?",
-      "faesh"
-    );
-  </script>
+  });
+</script>
 
 </body>
 </html>
