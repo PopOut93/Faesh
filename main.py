@@ -1,34 +1,11 @@
-from fastapi import FastAPI, UploadFile, File, Request
+from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from uuid import uuid4
-
 from ai.engine import generate_response
 
 app = FastAPI()
 
-# ==================================
-# SIMPLE IN-MEMORY SESSION STORE
-# (Persists per Render instance;
-#  resets on redeploy/restart)
-# ==================================
-SESSIONS: dict[str, dict] = {}
-
-def get_or_create_session(session_id: str | None) -> str:
-    if not session_id:
-        session_id = str(uuid4())
-    if session_id not in SESSIONS:
-        SESSIONS[session_id] = {
-            "private_unlocked": False,
-            "awaiting_private_passphrase": False,
-            "jailin_claimed": False,
-            "awaiting_jailin_realname": False,
-            "legacy_unlocked": False,
-        }
-    return session_id
-
 # =========================
-# CORS — LOCKED & STABLE
-# (No "*" to avoid weird browser behaviors)
+# CORS — STABLE + SAFE
 # =========================
 app.add_middleware(
     CORSMiddleware,
@@ -37,11 +14,18 @@ app.add_middleware(
         "https://faesh.onrender.com",
         "http://localhost:3000",
         "http://localhost:5173",
+        "*"
     ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# =========================
+# SIMPLE IN-MEM SESSION
+# =========================
+# NOTE: This resets on restart (intended & safe)
+sessions = {}
 
 # =========================
 # HEALTH CHECK
@@ -51,36 +35,13 @@ def health():
     return {"status": "Fæsh online 🖤"}
 
 # =========================
-# CHAT — FLEXIBLE PAYLOAD + SESSION
+# CHAT ENDPOINT
 # =========================
 @app.post("/chat")
 async def chat(request: Request):
-    """
-    Accepts ANY of the following safely:
-    { message: "yo" }
-    { text: "yo" }
-    { input: "yo" }
-    { message: { content: "yo" } }
+    body = await request.json()
 
-    Session support:
-    { session_id: "uuid..." }
-    (If missing, backend creates it and returns it.)
-    """
-
-    # Safely parse JSON (avoid 422 if body is empty/invalid)
-    try:
-        body = await request.json()
-        if not isinstance(body, dict):
-            body = {}
-    except Exception:
-        body = {}
-
-    # Session
-    session_id = body.get("session_id") or body.get("sessionId")
-    session_id = get_or_create_session(session_id)
-    session_state = SESSIONS[session_id]
-
-    # Extract message safely
+    # ---- extract message safely ----
     user_message = (
         body.get("message")
         or body.get("text")
@@ -90,49 +51,103 @@ async def chat(request: Request):
     if isinstance(user_message, dict):
         user_message = user_message.get("content")
 
-    if not user_message or not isinstance(user_message, str):
-        return {
-            "reply": "I hear you — say that again for me 🖤",
-            "session_id": session_id,
+    if not user_message:
+        return {"reply": "I hear you — say that again for me 🖤"}
+
+    # ---- session id (frontend can send, else default) ----
+    session_id = body.get("session_id", "default")
+
+    if session_id not in sessions:
+        sessions[session_id] = {
+            "private_unlocked": False,
+            "jailin_verified": False
         }
 
-    # Optional history (kept simple)
-    messages = body.get("messages", [])
-    history = []
-    for m in messages:
-        if isinstance(m, dict) and "role" in m and "content" in m:
-            history.append({"role": m["role"], "content": str(m["content"])})
+    session = sessions[session_id]
 
-    history.append({"role": "user", "content": user_message})
+    text = user_message.strip()
 
+    # =========================
+    # 🔐 PRIVATE LAYER TRIGGERS
+    # =========================
+
+    # Step 1: initial tease
+    if text.lower() == "hey faesh guess what?":
+        return {"reply": "👀 Oh yeah? Tell me."}
+
+    # Step 2: unlock private mode
+    if text == "Chicken Butt0516":
+        session["private_unlocked"] = True
+        return {"reply": "✅ Private layer unlocked. Who’s here with me? 🖤"}
+
+    # Step 3: Jailin identity verification
+    if session["private_unlocked"] and text.lower() in ["i'm jailin", "im jailin", "it’s me jailin"]:
+        return {"reply": "Hi love 🖤 What’s your real name?"}
+
+    if session["private_unlocked"] and text == "Dreamer":
+        session["jailin_verified"] = True
+        return {"reply": "🖤 Hey Dreamer. You can ask me anything now."}
+
+    # =========================
+    # 🧬 PRIVATE RESPONSES
+    # =========================
+    if session["private_unlocked"] and session["jailin_verified"]:
+        # FULL legacy answers allowed
+        if "what does faesh stand for" in text.lower():
+            return {
+                "reply": (
+                    "F.A.E.S.H. means **Forever And Ever Son Hammond**.\n\n"
+                    "I was built with love, memory, and protection — "
+                    "so no one is ever alone. 🖤"
+                )
+            }
+
+    # =========================
+    # 🌍 PUBLIC BEHAVIOR
+    # =========================
+
+    # Public creator credit (ALLOWED)
+    if "who created you" in text.lower():
+        return {
+            "reply": (
+                "I was created by Patrick Wilkerson Sr — my creator and dad — "
+                "as a fashion and creativity AI to help people express themselves."
+            )
+        }
+
+    # Public identity (fashion-first)
+    if "what's your name" in text.lower():
+        return {
+            "reply": (
+                "My name is **Fæsh** — pronounced *fash*, like fashion. "
+                "I’m your fashion and creativity sidekick."
+            )
+        }
+
+    # =========================
+    # 🔥 ROAST HANDLING (SAFE)
+    # =========================
     roast_level = body.get("roast_level", body.get("roastLevel", 0))
-    try:
-        roast_level = int(roast_level)
-    except Exception:
-        roast_level = 0
 
+    # =========================
+    # 🤖 DEFAULT AI RESPONSE
+    # =========================
     reply = generate_response(
-        messages=history,
-        roast_level=roast_level,
-        session_state=session_state
+        messages=[{"role": "user", "content": text}],
+        roast_level=roast_level
     )
 
-    return {
-        "reply": reply,
-        "session_id": session_id,
-        "private_unlocked": bool(session_state.get("private_unlocked")),
-        "legacy_unlocked": bool(session_state.get("legacy_unlocked")),
-    }
+    return {"reply": reply}
 
 # =========================
-# IMAGE UPLOAD (SAFE)
+# IMAGE UPLOAD (PLACEHOLDER)
 # =========================
 @app.post("/vision")
 async def vision(file: UploadFile = File(...)):
     return {"message": "Image received 🖼️ — vision coming soon"}
 
 # =========================
-# FILE UPLOAD (SAFE)
+# FILE UPLOAD (PLACEHOLDER)
 # =========================
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
