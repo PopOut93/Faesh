@@ -8,19 +8,33 @@
   <style>
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0e0e11;
-      color: #fff;
+      background: #0e0e14;
+      color: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       height: 100vh;
     }
 
-    header {
-      padding: 12px 16px;
+    .app {
+      width: 100%;
+      max-width: 520px;
+      height: 90vh;
       background: #12121a;
-      border-bottom: 1px solid #1f1f2e;
-      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0,0,0,0.6);
+    }
+
+    header {
+      padding: 14px 16px;
+      background: #151521;
+      border-bottom: 1px solid #222233;
+      font-weight: bold;
+      text-align: center;
     }
 
     #chat {
@@ -32,275 +46,171 @@
       gap: 10px;
     }
 
-    .message {
-      max-width: 75%;
-      padding: 10px 14px;
-      border-radius: 14px;
-      line-height: 1.4;
-      font-size: 14px;
-      word-wrap: break-word;
-    }
-
-    .user {
+    .user-msg {
       align-self: flex-end;
-      background: #3b82f6;
-      color: #fff;
+      background: #4c5cff;
+      padding: 10px 14px;
+      border-radius: 16px 16px 4px 16px;
+      max-width: 80%;
     }
 
-    .bot {
+    .bot-msg {
       align-self: flex-start;
-      background: #1f2937;
-      color: #e5e7eb;
-    }
-
-    footer {
-      padding: 10px;
-      background: #12121a;
-      border-top: 1px solid #1f1f2e;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      background: #232336;
+      padding: 10px 14px;
+      border-radius: 16px 16px 16px 4px;
+      max-width: 80%;
     }
 
     .controls {
+      border-top: 1px solid #222233;
+      padding: 10px;
       display: flex;
-      gap: 6px;
+      gap: 8px;
       align-items: center;
+      background: #141420;
     }
 
-    textarea {
+    input[type="text"] {
       flex: 1;
-      resize: none;
-      padding: 10px;
+      padding: 10px 12px;
       border-radius: 8px;
       border: none;
       outline: none;
-      background: #1f2937;
+      background: #1d1d2b;
       color: #fff;
-      font-size: 14px;
-      height: 44px;
     }
 
     button {
       padding: 10px 14px;
-      border-radius: 8px;
       border: none;
+      border-radius: 8px;
+      background: #4c5cff;
+      color: white;
       cursor: pointer;
-      background: #3b82f6;
-      color: #fff;
-      font-weight: 600;
     }
 
-    button.secondary {
-      background: #374151;
+    button:hover {
+      opacity: 0.9;
     }
 
-    input[type="range"] {
-      width: 100%;
+    .extras {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: #101018;
+      border-top: 1px solid #1f1f2e;
     }
 
-    .label {
+    .extras label {
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .extras input[type="file"] {
+      display: none;
+    }
+
+    .roast {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-size: 12px;
-      color: #9ca3af;
+    }
+
+    .roast input {
+      width: 120px;
     }
   </style>
 </head>
 
 <body>
-  <header>Faesh</header>
+  <div class="app">
+    <header>Faesh</header>
 
-  <div id="chat"></div>
+    <div id="chat"></div>
 
-  <footer>
-    <div class="label">Roast level</div>
-    <input id="roastLevel" type="range" min="0" max="3" step="1" value="1" />
+    <div class="extras">
+      <label title="Upload image">🖼️
+        <input type="file" accept="image/*">
+      </label>
+
+      <label title="Upload file">📎
+        <input type="file">
+      </label>
+
+      <div class="roast">
+        <span>Roast</span>
+        <input type="range" min="0" max="3" value="1" oninput="setRoastLevel(this.value)">
+      </div>
+    </div>
 
     <div class="controls">
-      <input id="imageInput" type="file" accept="image/*" hidden />
-      <input id="fileInput" type="file" hidden />
-
-      <button class="secondary" onclick="document.getElementById('imageInput').click()">🖼️</button>
-      <button class="secondary" onclick="document.getElementById('fileInput').click()">📎</button>
-
-      <textarea id="input" placeholder="Say something to Faesh..."></textarea>
+      <input id="userInput" type="text" placeholder="Say something…" onkeydown="if(event.key==='Enter'){sendMessage()}" />
       <button onclick="sendMessage()">Send</button>
     </div>
-  </footer>
+  </div>
 
+  <!-- ===== SCRIPT (SINGLE SOURCE OF TRUTH) ===== -->
   <script>
-    console.log("Faesh frontend loaded cleanly");
+    // ===== GLOBAL STATE =====
+    window.currentRoastLevel = 1;
 
-    const chatEl = document.getElementById("chat");
-    const inputEl = document.getElementById("input");
-    const roastEl = document.getElementById("roastLevel");
-
-    let messages = [];
-
-    function addMessage(role, text) {
-      const div = document.createElement("div");
-      div.className = `message ${role}`;
-      div.textContent = text;
-      chatEl.appendChild(div);
-      chatEl.scrollTop = chatEl.scrollHeight;
+    // ===== UI HELPERS =====
+    function addMessage(text, sender) {
+      const chat = document.getElementById("chat");
+      const msg = document.createElement("div");
+      msg.className = sender === "user" ? "user-msg" : "bot-msg";
+      msg.textContent = text;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
     }
 
-async function sendMessage() {
-  const input = document.getElementById("userInput");
-  const message = input.value.trim();
-  if (!message) return;
+    // ===== ROAST LEVEL =====
+    window.setRoastLevel = function(level) {
+      window.currentRoastLevel = Number(level);
+    };
 
-  addMessage(message, "user");
-  input.value = "";
+    // ===== SEND MESSAGE (GLOBAL) =====
+    window.sendMessage = async function() {
+      const input = document.getElementById("userInput");
+      const message = input.value.trim();
+      if (!message) return;
 
-  try {
-    const response = await fetch("https://faesh.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: message,
-        roast_level: window.currentRoastLevel || 1
-      })
-    });
+      addMessage(message, "user");
+      input.value = "";
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
+      try {
+        const res = await fetch("https://faesh.onrender.com/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: message,
+            roast_level: window.currentRoastLevel
+          })
+        });
 
-    const data = await response.json();
-    addMessage(data.reply, "bot");
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status);
+        }
 
-  } catch (err) {
-    console.error("Faesh fetch error:", err);
-    addMessage("⚠️ Faesh froze — backend didn’t respond.", "bot");
-  }
-}
-async function sendMessage() {
-  const input = document.getElementById("userInput");
-  const message = input.value.trim();
-  if (!message) return;
+        const data = await res.json();
+        addMessage(data.reply || "⚠️ No reply received.", "bot");
 
-  addMessage(message, "user");
-  input.value = "";
+      } catch (err) {
+        console.error(err);
+        addMessage("⚠️ Faesh froze — backend didn’t respond.", "bot");
+      }
+    };
 
-  try {
-    const response = await fetch("https://faesh.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: message,
-        roast_level: window.currentRoastLevel || 1
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    addMessage(data.reply, "bot");
-
-  } catch (err) {
-    console.error("Faesh fetch error:", err);
-    addMessage("⚠️ Faesh froze — backend didn’t respond.", "bot");
-  }
-}
-async function sendMessage() {
-  const input = document.getElementById("userInput");
-  const message = input.value.trim();
-  if (!message) return;
-
-  addMessage(message, "user");
-  input.value = "";
-
-  try {
-    const response = await fetch("https://faesh.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: message,
-        roast_level: window.currentRoastLevel || 1
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    addMessage(data.reply, "bot");
-
-  } catch (err) {
-    console.error("Faesh fetch error:", err);
-    addMessage("⚠️ Faesh froze — backend didn’t respond.", "bot");
-  }
-}
-async function sendMessage() {
-  const input = document.getElementById("userInput");
-  const message = input.value.trim();
-  if (!message) return;
-
-  addMessage(message, "user");
-  input.value = "";
-
-  try {
-    const response = await fetch("https://faesh.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: message,
-        roast_level: window.currentRoastLevel || 1
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    addMessage(data.reply, "bot");
-
-  } catch (err) {
-    console.error("Faesh fetch error:", err);
-    addMessage("⚠️ Faesh froze — backend didn’t respond.", "bot");
-  }
-}
-async function sendMessage() {
-  const input = document.getElementById("userInput");
-  const message = input.value.trim();
-  if (!message) return;
-
-  addMessage(message, "user");
-  input.value = "";
-
-  try {
-    const response = await fetch("https://faesh.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: message,
-        roast_level: window.currentRoastLevel || 1
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    addMessage(data.reply, "bot");
-
-  } catch (err) {
-    console.error("Faesh fetch error:", err);
-    addMessage("⚠️ Faesh froze — backend didn’t respond.", "bot");
-  }
-}
+    // ===== WELCOME MESSAGE =====
+    addMessage(
+      "Yo! What’s good? Faesh here — your fashion and creativity sidekick, created by Patrick Wilkerson Sr. What vibe are we on?",
+      "bot"
+    );
+  </script>
+</body>
+</html>
