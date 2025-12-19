@@ -1,27 +1,21 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from fastapi.middleware.cors import CORSMiddleware
-from ai.engine import generate_response
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 class ChatRequest(BaseModel):
-    messages: list
-    roast_level: int = 1
+    message: str
 
-@app.get("/")
-def health():
-    return {"status": "Faesh is alive"}
+class ChatResponse(BaseModel):
+    reply: str
 
-@app.post("/chat")
-def chat(req: ChatRequest):
-    reply = generate_response(req.messages, req.roast_level)
-    return {"reply": reply}
+@app.post("/chat", response_model=ChatResponse)
+async def chat_endpoint(data: ChatRequest):
+    user_message = data.message.strip()
+
+    if not user_message:
+        return {"reply": "Hey — say something so I can vibe with you 🙂"}
+
+    return {
+        "reply": f"Faesh here 👋 You said: {user_message}"
+    }
