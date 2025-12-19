@@ -1,201 +1,370 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Explicit favicon fix -->
-  <link rel="icon" href="./favicon.ico" type="image/x-icon" />
-
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Fæsh</title>
 
+  <!-- If your favicon is in the ROOT of your GitHub Pages repo, this is correct -->
+  <link rel="icon" href="./favicon.ico" />
+
   <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0f0f14;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+    :root{
+      --bg:#0b0b12;
+      --panel:#12121a;
+      --panel2:#0f0f16;
+      --line:#1f1f2e;
+      --text:#ececf7;
+      --muted:#b9bad3;
+      --accent:#7c5cff;
+      --good:#3ddc97;
+      --warn:#ffcc66;
+      --bad:#ff5c7a;
     }
-
-    .app {
-      width: 100%;
-      max-width: 420px;
-      height: 90vh;
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 50% -10%, #1a1a2c 0%, var(--bg) 55%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .wrap{
+      width:min(820px, 100%);
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(18,18,26,.95), rgba(12,12,18,.92));
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    }
+    header{
+      padding:12px 16px;
       background: #12121a;
-      border-radius: 14px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0,0,0,.6);
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
     }
-
-    header {
-      padding: 14px 16px;
-      font-weight: 700;
-      background: #141420;
-      border-bottom: 1px solid #1f1f2e;
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:800;
+      letter-spacing:.2px;
     }
-
-    .messages {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
+    .dot{
+      width:10px;height:10px;border-radius:999px;background:var(--good);
+      box-shadow:0 0 0 4px rgba(61,220,151,.12);
     }
-
-    .msg {
-      margin-bottom: 12px;
-      line-height: 1.4;
+    .sub{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:600;
     }
-
-    .msg.user {
-      text-align: right;
-      color: #9fd3ff;
+    .controls{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
     }
-
-    .msg.bot {
-      text-align: left;
-      color: #fff;
+    .pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      padding:8px 10px;
+      border-radius:999px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:650;
+      user-select:none;
     }
-
-    .composer {
-      display: flex;
-      gap: 6px;
-      padding: 10px;
-      border-top: 1px solid #1f1f2e;
-      background: #141420;
+    .pill input[type="range"]{
+      width:120px;
     }
-
-    .composer input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      outline: none;
-      background: #1b1b29;
-      color: #fff;
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:9px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:750;
+      transition:.12s transform ease, .12s background ease;
     }
-
-    .composer button {
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      background: #6c5ce7;
-      color: #fff;
-      font-weight: 600;
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.06);}
+    .btn:active{transform: translateY(0px);}
+    .btnAccent{
+      border-color: rgba(124,92,255,.45);
+      background: rgba(124,92,255,.12);
     }
-
-    .icons {
-      display: flex;
-      gap: 8px;
-      margin-left: 6px;
+    .main{
+      display:flex;
+      flex-direction:column;
+      height:min(72vh, 640px);
+      background: #0e0e15;
     }
-
-    .icons button {
-      background: #1b1b29;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 10px;
-      cursor: pointer;
-      color: #fff;
+    #chat{
+      padding:16px;
+      overflow:auto;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
     }
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:flex-end;
+    }
+    .row.you{justify-content:flex-end}
+    .bubble{
+      max-width:min(78%, 680px);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px 12px;
+      line-height:1.25;
+      white-space:pre-wrap;
+      word-wrap:break-word;
+    }
+    .bubble.you{
+      background: rgba(124,92,255,.13);
+      border-color: rgba(124,92,255,.35);
+    }
+    .bubble.faesh{
+      background: rgba(255,255,255,.04);
+    }
+    .meta{
+      font-size:11px;
+      color:var(--muted);
+      margin:0 6px;
+      font-weight:650;
+    }
+    .composer{
+      padding:12px;
+      border-top:1px solid var(--line);
+      background: #0f0f16;
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    #input{
+      flex:1;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:12px 12px;
+      border-radius:14px;
+      outline:none;
+      font-size:14px;
+      font-weight:650;
+    }
+    #input::placeholder{color:rgba(185,186,211,.65)}
+    .tiny{
+      font-size:12px;
+      color:var(--muted);
+      padding:10px 16px;
+      border-top:1px solid var(--line);
+      background:#0e0e15;
+    }
+    .hiddenInput{display:none;}
   </style>
 </head>
+
 <body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="brand">
+          <span class="dot"></span>
+          <span>Fæsh</span>
+        </div>
+        <div class="sub">Fashion + creativity sidekick</div>
+      </div>
 
-<div class="app">
-  <header>Fæsh</header>
+      <div class="controls">
+        <label class="pill" title="Only roasts if > 0 (safe)">
+          <span>Roast</span>
+          <input id="roast" type="range" min="0" max="5" value="0" />
+          <span id="roastVal">0</span>
+        </label>
 
-  <div id="messages" class="messages"></div>
+        <button class="btn" id="imgBtn" title="Send an image">🖼️</button>
+        <button class="btn" id="fileBtn" title="Send a file">📎</button>
 
-  <div class="composer">
-    <input
-      id="input"
-      type="text"
-      placeholder="Say something…"
-      autocomplete="off"
-    />
+        <button class="btn btnAccent" id="sendBtn">Send</button>
+      </div>
+    </header>
 
-    <div class="icons">
-      <button title="Upload image">🖼️</button>
-      <button title="Upload file">📎</button>
+    <div class="main">
+      <div id="chat"></div>
+
+      <div class="composer">
+        <input id="input" placeholder="Say something…" autocomplete="off" />
+        <!-- hidden inputs for uploads -->
+        <input class="hiddenInput" id="imgInput" type="file" accept="image/*" />
+        <input class="hiddenInput" id="fileInput" type="file" />
+      </div>
+
+      <div class="tiny">
+        Tip: Press <b>Enter</b> to send. Private layer is locked behind your trigger phrase.
+      </div>
     </div>
-
-    <button onclick="sendMessage()">Send</button>
   </div>
-</div>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+  <script>
+    // ====== CONFIG ======
+    const API_BASE = "https://faesh.onrender.com";
 
-  const chatBox =
-    document.getElementById("chat") ||
-    document.getElementById("chat-box") ||
-    document.querySelector(".chat") ||
-    document.querySelector(".messages");
+    // ====== STATE ======
+    let history = []; // [{role:'user'|'assistant', content:'...'}]
 
-  const input = document.querySelector("input[type='text'], textarea");
-  const roastSlider = document.getElementById("roast");
+    // ====== DOM ======
+    const chatEl = document.getElementById("chat");
+    const inputEl = document.getElementById("input");
+    const sendBtn = document.getElementById("sendBtn");
+    const roastEl = document.getElementById("roast");
+    const roastValEl = document.getElementById("roastVal");
+    const imgBtn = document.getElementById("imgBtn");
+    const fileBtn = document.getElementById("fileBtn");
+    const imgInput = document.getElementById("imgInput");
+    const fileInput = document.getElementById("fileInput");
 
-  if (!chatBox || !input) {
-    console.error("❌ Chat container or input not found");
-    return;
-  }
-
-  function addMessage(text, sender) {
-    const div = document.createElement("div");
-    div.className = sender === "user" ? "message user" : "message bot";
-    div.textContent = text;
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-
-  window.sendMessage = async function () {
-    const text = input.value.trim();
-    if (!text) return;
-
-    addMessage(text, "user");
-    input.value = "";
-
-    try {
-      const response = await fetch("https://faesh.onrender.com/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          messages: [
-            { role: "user", content: text }
-          ],
-          roast_level: parseInt(roastSlider?.value || 1)
-        })
-      });
-
-      if (!response.ok) throw new Error("Backend error");
-
-      const data = await response.json();
-      addMessage(data.reply, "bot");
-
-    } catch (err) {
-      console.error(err);
-      addMessage("⚠️ Faesh froze — backend didn’t respond.", "bot");
+    function scrollToBottom() {
+      chatEl.scrollTop = chatEl.scrollHeight;
     }
-  };
 
-  // Enter key support (restored)
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      window.sendMessage();
+    function addMessage(who, text) {
+      // who: 'you' or 'faesh'
+      const row = document.createElement("div");
+      row.className = `row ${who === "you" ? "you" : "faesh"}`;
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = who === "you" ? "You" : "Fæsh";
+
+      const bubble = document.createElement("div");
+      bubble.className = `bubble ${who === "you" ? "you" : "faesh"}`;
+      bubble.textContent = text;
+
+      if (who === "you") {
+        row.appendChild(bubble);
+        row.appendChild(meta);
+      } else {
+        row.appendChild(meta);
+        row.appendChild(bubble);
+      }
+
+      chatEl.appendChild(row);
+      scrollToBottom();
     }
-  });
 
-});
-</script>
+    function setRoastLabel() {
+      roastValEl.textContent = String(roastEl.value);
+    }
+    setRoastLabel();
+    roastEl.addEventListener("input", setRoastLabel);
 
+    async function postJSON(path, payload, timeoutMs = 15000) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+
+      try {
+        const res = await fetch(`${API_BASE}${path}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          mode: "cors",
+          signal: ctrl.signal
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          // Surface a readable message
+          const msg = data?.detail || data?.message || `Backend error (${res.status})`;
+          throw new Error(msg);
+        }
+
+        return data;
+      } finally {
+        clearTimeout(t);
+      }
+    }
+
+    async function sendMessage() {
+      const text = (inputEl.value || "").trim();
+      if (!text) return;
+
+      inputEl.value = "";
+      addMessage("you", text);
+
+      // keep history small
+      history.push({ role: "user", content: text });
+      history = history.slice(-20);
+
+      const roast_level = Number(roastEl.value || 0);
+
+      try {
+        const payload = {
+          // backend accepts message/text/input — we send message
+          message: text,
+          messages: history,
+          roast_level: roast_level
+        };
+
+        const data = await postJSON("/chat", payload);
+        const reply = (data && (data.reply || data.message)) ? (data.reply || data.message) : "…";
+
+        addMessage("faesh", reply);
+
+        history.push({ role: "assistant", content: reply });
+        history = history.slice(-20);
+
+      } catch (err) {
+        addMessage("faesh", `⚠️ Faesh froze — backend didn’t respond. ${err?.message ? "(" + err.message + ")" : ""}`);
+      }
+    }
+
+    // Enter-to-send
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    sendBtn.addEventListener("click", () => sendMessage());
+
+    // Upload buttons (safe placeholders)
+    imgBtn.addEventListener("click", () => imgInput.click());
+    fileBtn.addEventListener("click", () => fileInput.click());
+
+    imgInput.addEventListener("change", async () => {
+      if (!imgInput.files || !imgInput.files[0]) return;
+      addMessage("you", "🖼️ (image selected)");
+      // You already have /vision on backend; keeping this minimal for now.
+      addMessage("faesh", "Image received 🖼️ — vision coming soon");
+      imgInput.value = "";
+    });
+
+    fileInput.addEventListener("change", async () => {
+      if (!fileInput.files || !fileInput.files[0]) return;
+      addMessage("you", "📎 (file selected)");
+      // You already have /upload on backend; keeping this minimal for now.
+      addMessage("faesh", "File received 📎 — file support coming soon");
+      fileInput.value = "";
+    });
+
+    // Initial greeting
+    addMessage("faesh", "Yo! What’s good? Fæsh here — your fashion and creativity sidekick, created by Patrick Wilkerson Sr. What vibe are we on?");
+  </script>
 </body>
 </html>
