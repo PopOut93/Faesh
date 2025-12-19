@@ -30,44 +30,62 @@ def health():
     return {"status": "Fæsh online 🖤"}
 
 # =========================
-# CHAT — FLEXIBLE PAYLOAD
+# CHAT — FLEXIBLE + BULLETPROOF
 # =========================
 @app.post("/chat")
 async def chat(request: Request):
     """
-    Accepts ANY of the following safely:
-    { message: "yo" }
-    { text: "yo" }
-    { input: "yo" }
-    { message: { content: "yo" } }
+    Accepts ALL of the following safely:
+    - JSON: { message: "yo" }
+    - JSON: { text: "yo" }
+    - JSON: { input: "yo" }
+    - JSON: { message: { content: "yo" } }
+    - Raw text: "yo"
     """
 
-    body = await request.json()
+    user_message = None
+    messages = []
+    roast_level = 0
 
-    # Extract message safely
-    user_message = (
-        body.get("message")
-        or body.get("text")
-        or body.get("input")
-    )
+    # 1️⃣ Try JSON body first
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            user_message = (
+                body.get("message")
+                or body.get("text")
+                or body.get("input")
+            )
 
-    if isinstance(user_message, dict):
-        user_message = user_message.get("content")
+            if isinstance(user_message, dict):
+                user_message = user_message.get("content")
 
+            messages = body.get("messages", [])
+            roast_level = body.get("roast_level", body.get("roastLevel", 0))
+    except:
+        pass
+
+    # 2️⃣ Fallback: raw text (text/plain)
+    if not user_message:
+        try:
+            raw = await request.body()
+            raw_text = raw.decode("utf-8").strip()
+            if raw_text:
+                user_message = raw_text
+        except:
+            pass
+
+    # 3️⃣ Still nothing? gentle fallback
     if not user_message:
         return {"reply": "I hear you — say that again for me 🖤"}
 
-    # Optional history
-    messages = body.get("messages", [])
-
+    # Build conversation history safely
     history = []
     for m in messages:
         if isinstance(m, dict) and "role" in m and "content" in m:
             history.append({"role": m["role"], "content": m["content"]})
 
     history.append({"role": "user", "content": user_message})
-
-    roast_level = body.get("roast_level", body.get("roastLevel", 0))
 
     reply = generate_response(
         messages=history,
