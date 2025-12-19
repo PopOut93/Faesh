@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Faesh</title>
+  <title>Fæsh</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
     body {
       margin: 0;
+      background: #0e0e12;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0f0f14;
-      color: #eaeaf0;
+      color: #fff;
       display: flex;
       flex-direction: column;
       height: 100vh;
@@ -20,7 +21,7 @@
       background: #12121a;
       border-bottom: 1px solid #1f1f2e;
       font-weight: 700;
-      letter-spacing: 0.5px;
+      font-size: 18px;
     }
 
     #chat {
@@ -29,127 +30,126 @@
       overflow-y: auto;
     }
 
+    .msg {
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
     .user {
-      margin: 8px 0;
-      align-self: flex-end;
-      background: #2d6cdf;
-      padding: 10px 14px;
-      border-radius: 14px;
-      max-width: 75%;
-      color: #fff;
+      color: #9fd3ff;
     }
 
-    .bot {
-      margin: 8px 0;
-      align-self: flex-start;
-      background: #1e1e2d;
-      padding: 10px 14px;
-      border-radius: 14px;
-      max-width: 75%;
-    }
-
-    .error {
-      margin: 8px 0;
-      color: #ff8a8a;
-      font-size: 0.9em;
+    .faesh {
+      color: #e6e6ff;
     }
 
     footer {
-      display: flex;
-      gap: 8px;
-      padding: 10px;
-      background: #12121a;
       border-top: 1px solid #1f1f2e;
+      padding: 10px;
+      display: flex;
+      gap: 6px;
+      background: #12121a;
     }
 
     input[type="text"] {
       flex: 1;
-      padding: 10px 12px;
-      border-radius: 8px;
+      padding: 10px;
+      border-radius: 6px;
       border: none;
       outline: none;
-      font-size: 1em;
+      background: #1a1a24;
+      color: #fff;
     }
 
     button {
-      padding: 10px 14px;
-      border-radius: 8px;
+      padding: 10px 12px;
+      border-radius: 6px;
       border: none;
-      background: #2d6cdf;
-      color: white;
       cursor: pointer;
+      background: #2a2a3d;
+      color: #fff;
       font-weight: 600;
     }
 
-    button.secondary {
-      background: #2a2a3d;
+    button:hover {
+      background: #3a3a55;
+    }
+
+    .icon-btn {
+      width: 42px;
     }
   </style>
 </head>
 
 <body>
 
-<header>
-  Faesh
-</header>
+  <header>Fæsh</header>
 
-<div id="chat">
-  <div class="bot">
-    Yo! What’s good? Faesh here — your fashion and creativity sidekick, created by Patrick Wilkerson Sr.
-    What vibe are we on?
-  </div>
-</div>
+  <div id="chat"></div>
 
-<footer>
-  <button class="secondary" title="Upload image">🖼️</button>
-  <button class="secondary" title="Upload file">📎</button>
-  <input id="userInput" type="text" placeholder="Say something…" />
-  <button onclick="sendMessage()">Send</button>
-</footer>
+  <footer>
+    <button class="icon-btn" onclick="document.getElementById('imageInput').click()">🖼️</button>
+    <button class="icon-btn" onclick="document.getElementById('fileInput').click()">📎</button>
+    <input id="userInput" type="text" placeholder="Say something…" />
+    <button onclick="sendMessage()">Send</button>
+  </footer>
 
-<script>
-async function sendMessage() {
-  const input = document.getElementById("userInput");
-  const chat = document.getElementById("chat");
+  <input type="file" id="imageInput" accept="image/*" hidden />
+  <input type="file" id="fileInput" hidden />
 
-  const text = input.value.trim();
-  if (!text) return;
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("userInput");
 
-  chat.innerHTML += `<div class="user">${text}</div>`;
-  input.value = "";
-  chat.scrollTop = chat.scrollHeight;
-
-  try {
-    const res = await fetch("https://faesh.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messages: [
-          { role: "user", content: text }
-        ],
-        roast_level: 1
-      })
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      console.error("Backend error:", err);
-      chat.innerHTML += `<div class="error">⚠️ Backend error (${res.status})</div>`;
-      return;
+    function addMessage(text, cls) {
+      const div = document.createElement("div");
+      div.className = "msg " + cls;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
     }
 
-    const data = await res.json();
-    chat.innerHTML += `<div class="bot">${data.reply}</div>`;
-    chat.scrollTop = chat.scrollHeight;
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
 
-  } catch (e) {
-    console.error("Network error:", e);
-    chat.innerHTML += `<div class="error">⚠️ Faesh froze — backend didn’t respond.</div>`;
-  }
-}
-</script>
+      addMessage("You: " + text, "user");
+      input.value = "";
+
+      try {
+        const res = await fetch("https://faesh.onrender.com/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
+        });
+
+        if (!res.ok) {
+          addMessage("⚠️ Faesh froze — backend didn’t respond.", "faesh");
+          return;
+        }
+
+        const data = await res.json();
+        addMessage("Fæsh: " + data.reply, "faesh");
+
+      } catch (err) {
+        addMessage("⚠️ Faesh froze — backend didn’t respond.", "faesh");
+      }
+    }
+
+    // ENTER KEY SEND
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Initial greeting
+    addMessage(
+      "Fæsh: Yo! What’s good? Fæsh here — your fashion and creativity sidekick, created by Patrick Wilkerson Sr. What vibe are we on?",
+      "faesh"
+    );
+  </script>
 
 </body>
 </html>
