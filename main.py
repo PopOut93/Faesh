@@ -1,42 +1,49 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from ai.engine import generate_response
 
 app = FastAPI()
 
-# ✅ CORS — DO NOT TOUCH (this is correct now)
+# =========================
+# 🌍 CORS (STABLE + FINAL)
+# =========================
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://popout93.github.io",
-        "http://localhost:5500",
-        "http://localhost:3000",
+        "https://faesh.onrender.com"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# =========================
+# 📩 REQUEST MODEL
+# =========================
+
 class ChatRequest(BaseModel):
-    message: str
+    messages: list
+    roast_level: int = 1
 
-class ChatResponse(BaseModel):
-    reply: str
+# =========================
+# 💬 CHAT ENDPOINT
+# =========================
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(data: ChatRequest):
-    user_message = data.message.strip().lower()
+@app.post("/chat")
+def chat(req: ChatRequest):
+    reply = generate_response(
+        messages=req.messages,
+        roast_level=req.roast_level
+    )
+    return {"reply": reply}
 
-    if not user_message:
-        return {"reply": "Hey — say something so I can vibe with you 🙂"}
+# =========================
+# 🫀 HEALTH CHECK
+# =========================
 
-    # ✅ INTENT HANDLING (START)
-    if "who created you" in user_message or "who greated you" in user_message:
-        return {
-            "reply": "I was created by Patrick Wilkerson Sr — my creator and father."
-        }
-
-    # default fallback (echo, friendly)
-    return {
-        "reply": f"Fæsh here 👋 You said: {data.message}"
-    }
+@app.get("/")
+def root():
+    return {"status": "Faesh is alive"}
