@@ -1,15 +1,12 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional
 
-# Import the Faesh engine (already deployed successfully)
 from ai.engine import generate_response
 
 app = FastAPI()
 
 # =========================
-# CORS — PERMANENT FIX
+# CORS — LOCKED & STABLE
 # =========================
 app.add_middleware(
     CORSMiddleware,
@@ -18,7 +15,7 @@ app.add_middleware(
         "https://faesh.onrender.com",
         "http://localhost:3000",
         "http://localhost:5173",
-        "*",  # safe here because no auth + no cookies
+        "*"
     ],
     allow_credentials=False,
     allow_methods=["*"],
@@ -26,72 +23,69 @@ app.add_middleware(
 )
 
 # =========================
-# REQUEST MODELS
-# =========================
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
-class ChatRequest(BaseModel):
-    message: str
-    messages: Optional[List[ChatMessage]] = []
-    roast_level: Optional[int] = 0
-
-# =========================
 # HEALTH CHECK
 # =========================
 @app.get("/")
 def health():
-    return {"status": "Faesh online 🖤"}
+    return {"status": "Fæsh online 🖤"}
 
 # =========================
-# CHAT ENDPOINT (REAL ENGINE)
+# CHAT — FLEXIBLE PAYLOAD
 # =========================
 @app.post("/chat")
-def chat(request: ChatRequest):
+async def chat(request: Request):
     """
-    Accepts:
-    {
-      message: "yo",
-      messages: [...],
-      roast_level: 0-5
-    }
+    Accepts ANY of the following safely:
+    { message: "yo" }
+    { text: "yo" }
+    { input: "yo" }
+    { message: { content: "yo" } }
     """
 
-    # Build conversation history safely
-    history = []
+    body = await request.json()
 
-    if request.messages:
-        for m in request.messages:
-            history.append({"role": m.role, "content": m.content})
-
-    # Append the new user message
-    history.append({"role": "user", "content": request.message})
-
-    # Call the REAL Faesh engine
-    response_text = generate_response(
-        messages=history,
-        roast_level=request.roast_level or 0,
+    # Extract message safely
+    user_message = (
+        body.get("message")
+        or body.get("text")
+        or body.get("input")
     )
 
-    return {
-        "reply": response_text
-    }
+    if isinstance(user_message, dict):
+        user_message = user_message.get("content")
+
+    if not user_message:
+        return {"reply": "I hear you — say that again for me 🖤"}
+
+    # Optional history
+    messages = body.get("messages", [])
+
+    history = []
+    for m in messages:
+        if isinstance(m, dict) and "role" in m and "content" in m:
+            history.append({"role": m["role"], "content": m["content"]})
+
+    history.append({"role": "user", "content": user_message})
+
+    roast_level = body.get("roast_level", body.get("roastLevel", 0))
+
+    reply = generate_response(
+        messages=history,
+        roast_level=roast_level
+    )
+
+    return {"reply": reply}
 
 # =========================
-# IMAGE UPLOAD (SAFE STUB)
+# IMAGE UPLOAD (SAFE)
 # =========================
 @app.post("/vision")
 async def vision(file: UploadFile = File(...)):
-    return {
-        "message": "Image received 🖼️ — vision analysis coming soon"
-    }
+    return {"message": "Image received 🖼️ — vision coming soon"}
 
 # =========================
-# FILE UPLOAD (SAFE STUB)
+# FILE UPLOAD (SAFE)
 # =========================
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
-    return {
-        "message": "File received 📎 — file analysis coming soon"
-    }
+    return {"message": "File received 📎 — file support coming soon"}
