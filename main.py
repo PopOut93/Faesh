@@ -1,13 +1,14 @@
-from fastapi import FastAPI, UploadFile, File, Request
+from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
 from ai.engine import generate_response
 
 app = FastAPI()
 
-# =========================
-# CORS — LOCKED & STABLE
-# =========================
+# ============================================================
+# CORS — HARD LOCK (GitHub Pages + Render SAFE)
+# ============================================================
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -15,28 +16,32 @@ app.add_middleware(
         "https://faesh.onrender.com",
         "http://localhost:3000",
         "http://localhost:5173",
-        "*"
     ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# =========================
+# ============================================================
 # HEALTH CHECK
-# =========================
+# ============================================================
+
 @app.get("/")
-def health():
+async def health():
     return {"status": "Fæsh online 🖤"}
 
-# =========================
-# CHAT — FLEXIBLE PAYLOAD
-# =========================
+# ============================================================
+# CHAT ENDPOINT
+# ============================================================
+
 @app.post("/chat")
 async def chat(request: Request):
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        return {"reply": "I hear you — say that again for me 🖤"}
 
-    # Extract message safely
+    # Accept flexible payloads
     user_message = (
         body.get("message")
         or body.get("text")
@@ -49,10 +54,9 @@ async def chat(request: Request):
     if not user_message:
         return {"reply": "I hear you — say that again for me 🖤"}
 
-    # Optional history
     messages = body.get("messages", [])
-
     history = []
+
     for m in messages:
         if isinstance(m, dict) and "role" in m and "content" in m:
             history.append({"role": m["role"], "content": m["content"]})
@@ -61,29 +65,25 @@ async def chat(request: Request):
 
     roast_level = body.get("roast_level", body.get("roastLevel", 0))
 
-    # ✅ Stable session id per visitor (IP + user-agent)
-    ip = request.client.host if request.client else "unknown"
-    ua = request.headers.get("user-agent", "unknown")
-    session_id = f"{ip}|{ua}"
-
     reply = generate_response(
         messages=history,
-        roast_level=roast_level,
-        session_id=session_id,
+        roast_level=roast_level
     )
 
     return {"reply": reply}
 
-# =========================
-# IMAGE UPLOAD (SAFE)
-# =========================
+# ============================================================
+# IMAGE UPLOAD (SAFE PLACEHOLDER)
+# ============================================================
+
 @app.post("/vision")
 async def vision(file: UploadFile = File(...)):
     return {"message": "Image received 🖼️ — vision coming soon"}
 
-# =========================
-# FILE UPLOAD (SAFE)
-# =========================
+# ============================================================
+# FILE UPLOAD (SAFE PLACEHOLDER)
+# ============================================================
+
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
     return {"message": "File received 📎 — file support coming soon"}
