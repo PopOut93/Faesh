@@ -1,205 +1,120 @@
 # ai/engine.py
-# ============================================================
-# FÆSH ENGINE — Fashion-first AI with optional Sensei mode
-# ============================================================
+# =========================
+# FÆSH ENGINE — PHASE 1
+# Fashion Brain + Sensei Brain
+# =========================
 
-from typing import List, Dict
+import re
 
-# ============================================================
-# MODE STATE (simple, safe session memory)
-# ============================================================
-
+# -------------------------
+# MODE STATE (in-memory)
+# -------------------------
 SESSION_STATE = {
-    "mode": "fashion",   # fashion | sensei | private
-    "private_unlocked": False
+    "mode": "fashion"  # default
 }
 
-# ============================================================
+# -------------------------
 # TRIGGERS
-# ============================================================
+# -------------------------
+SENSEI_ON = ["sensei", "sensei mode"]
+SENSEI_OFF = ["toasted 3d", "back to fashion"]
 
-PRIVATE_START = "hey faesh guess what?"
-PRIVATE_UNLOCK = "chicken butt0516"
+# -------------------------
+# SIMPLE SPELL FIX
+# -------------------------
+def normalize(text: str) -> str:
+    return re.sub(r"[^a-z0-9\s]", "", text.lower().strip())
 
-SENSEI_ON = [
-    "sensei",
-    "sensei mode"
-]
+# -------------------------
+# FASHION BRAIN
+# -------------------------
+def fashion_brain(user_input: str) -> str:
+    text = normalize(user_input)
 
-SENSEI_OFF = [
-    "toasted 3d"
-]
-
-# ============================================================
-# CORE RESPONSE FUNCTION
-# ============================================================
-
-def generate_response(
-    messages: List[Dict[str, str]],
-    roast_level: int = 0
-) -> str:
-    """
-    Main response router for Fæsh.
-    Fashion-first by default.
-    Sensei mode unlocks general knowledge.
-    Private mode unlocks legacy content.
-    """
-
-    if not messages:
-        return greeting()
-
-    user_input = messages[-1]["content"].strip()
-    lowered = user_input.lower()
-
-    # --------------------------------------------------------
-    # PRIVATE MODE HANDSHAKE
-    # --------------------------------------------------------
-    if lowered == PRIVATE_START:
-        return "👀 Oh yeah? Tell me."
-
-    if lowered == PRIVATE_UNLOCK:
-        SESSION_STATE["private_unlocked"] = True
-        SESSION_STATE["mode"] = "private"
-        return "✅ Private layer unlocked. What do you want to ask me? 🖤"
-
-    # --------------------------------------------------------
-    # SENSEI MODE TOGGLE
-    # --------------------------------------------------------
-    if lowered in SENSEI_ON:
-        SESSION_STATE["mode"] = "sensei"
-        return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
-
-    if lowered in SENSEI_OFF:
-        SESSION_STATE["mode"] = "fashion"
-        return "🧥 Fashion mode restored. Back to style, drip, and creativity."
-
-    # --------------------------------------------------------
-    # PRIVATE MODE LOGIC
-    # --------------------------------------------------------
-    if SESSION_STATE["mode"] == "private":
-        return private_response(user_input)
-
-    # --------------------------------------------------------
-    # SENSEI MODE LOGIC
-    # --------------------------------------------------------
-    if SESSION_STATE["mode"] == "sensei":
-        return sensei_response(user_input)
-
-    # --------------------------------------------------------
-    # DEFAULT: FASHION MODE
-    # --------------------------------------------------------
-    return fashion_response(user_input)
-
-# ============================================================
-# RESPONSE LAYERS
-# ============================================================
-
-def greeting() -> str:
-    return (
-        "Yo! What’s good? Fæsh here — your fashion and creativity sidekick, "
-        "created by Patrick Wilkerson Sr. What vibe are we on?"
-    )
-
-
-def fashion_response(text: str) -> str:
-    """
-    Fashion-first brain.
-    Encourages style, brands, outfits, culture.
-    """
-
-    t = text.lower()
-
-    if "who created you" in t:
-        return (
-            "I was created by Patrick Wilkerson Sr — my creator and dad — "
-            "as a fashion and creativity AI."
-        )
-
-    if "jordan" in t:
+    if "jordan" in text:
         return (
             "Jordans are iconic sneakers created under Nike for Michael Jordan. "
             "They blend basketball heritage with streetwear culture. "
             "Want help styling a pair?"
         )
 
-    if "nike" in t:
+    if "nike" in text:
         return (
             "Nike is a global sportswear brand known for innovation, performance, "
             "and cultural impact — from Air Force 1s to Jordans."
         )
 
-    if "gucci" in t:
+    if "versace" in text:
         return (
-            "Gucci is a luxury Italian fashion house known for bold design, "
-            "high-end craftsmanship, and cultural influence."
-        )
-
-    if "versace" in t:
-        return (
-            "Versace is a luxury fashion brand famous for bold patterns, "
+            "Versace is a luxury fashion brand known for bold patterns, "
             "gold accents, and confident statement pieces."
         )
 
-    # If unclear, gently guide
+    if "gucci" in text:
+        return (
+            "Gucci is a high-end fashion house known for Italian craftsmanship, "
+            "luxury design, and trend-setting style."
+        )
+
     return (
         "Got it. I can help with that.\n\n"
         "If you want deeper answers, try **Sensei** mode.\n"
         "If you want fashion help, just ask 🧥"
     )
 
+# -------------------------
+# SENSEI BRAIN
+# -------------------------
+def sensei_brain(user_input: str) -> str:
+    text = normalize(user_input)
 
-def sensei_response(text: str) -> str:
-    """
-    General intelligence mode.
-    Math, science, law, history, etc.
-    """
-
-    t = text.lower()
-
-    if "square root of pi" in t:
-        return "The square root of π is approximately **1.772**."
-
-    if "sky blue" in t:
+    if "math" in text:
         return (
-            "The sky appears blue because of Rayleigh scattering. "
-            "Shorter blue wavelengths scatter more in Earth’s atmosphere."
+            "Math is the study of numbers, patterns, structures, and relationships. "
+            "It helps us understand logic, quantity, space, and change."
         )
 
-    if "brown v board" in t:
-        return "Brown v. Board of Education is cited as **347 U.S. 483 (1954)**."
+    if "science" in text:
+        return (
+            "Science is the systematic study of the natural world through observation, "
+            "experimentation, and evidence."
+        )
 
-    # Default Sensei reply
+    if "god" in text:
+        return (
+            "Different cultures and philosophies define God in different ways — "
+            "as a creator, a higher power, a universal consciousness, or a moral ideal."
+        )
+
+    if "sky blue" in text:
+        return (
+            "The sky appears blue due to Rayleigh scattering — "
+            "shorter blue wavelengths scatter more in Earth’s atmosphere."
+        )
+
     return (
         "I can help with science, math, history, law, or tech.\n"
         "Ask away — or say **Toasted 3D** to return to fashion."
     )
 
+# -------------------------
+# MAIN ENGINE ROUTER
+# -------------------------
+def generate_response(messages, roast_level=0):
+    user_input = messages[-1]["content"]
+    text = normalize(user_input)
 
-def private_response(text: str) -> str:
-    """
-    Legacy / family layer.
-    Protected by trigger phrase.
-    """
+    # MODE SWITCHING
+    if any(trigger in text for trigger in SENSEI_ON):
+        SESSION_STATE["mode"] = "sensei"
+        return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
 
-    t = text.lower()
+    if any(trigger in text for trigger in SENSEI_OFF):
+        SESSION_STATE["mode"] = "fashion"
+        return "🧥 Fashion mode restored. Back to style, drip, and creativity."
 
-    if "what does faesh stand for" in t:
-        return (
-            "That’s a legacy Easter egg.\n"
-            "If you’re authorized, identify yourself and I’ll guide you."
-        )
+    # ROUTE TO BRAIN
+    if SESSION_STATE["mode"] == "sensei":
+        return sensei_brain(user_input)
 
-    if "i'm jailin" in t or "its jailin" in t:
-        return (
-            "Hey Jailin 🖤 Before I answer that — "
-            "what’s your real name?"
-        )
-
-    if t.strip() == "dreamer":
-        return (
-            "F.A.E.S.H. stands for **Forever And Ever Son Hammond**.\n\n"
-            "Built with love. Built for family. Built to make sure "
-            "no one is ever alone."
-        )
-
-    return "I hear you. Go on — I’m listening."
+    return fashion_brain(user_input)

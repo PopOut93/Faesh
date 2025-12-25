@@ -1,88 +1,36 @@
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
-
 from ai.engine import generate_response
 
 app = FastAPI()
 
-# ============================================================
-# CORS — HARD LOCK (GitHub Pages + Render SAFE)
-# ============================================================
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://popout93.github.io",
-        "https://faesh.onrender.com",
-        "http://localhost:3000",
-        "http://localhost:5173",
-    ],
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ============================================================
-# HEALTH CHECK
-# ============================================================
-
 @app.get("/")
-async def health():
+def health():
     return {"status": "Fæsh online 🖤"}
-
-# ============================================================
-# CHAT ENDPOINT
-# ============================================================
 
 @app.post("/chat")
 async def chat(request: Request):
-    try:
-        body = await request.json()
-    except Exception:
-        return {"reply": "I hear you — say that again for me 🖤"}
-
-    # Accept flexible payloads
-    user_message = (
-        body.get("message")
-        or body.get("text")
-        or body.get("input")
-    )
-
-    if isinstance(user_message, dict):
-        user_message = user_message.get("content")
+    body = await request.json()
+    user_message = body.get("message") or body.get("text") or body.get("input")
 
     if not user_message:
-        return {"reply": "I hear you — say that again for me 🖤"}
+        return {"reply": "Say that again for me 🖤"}
 
-    messages = body.get("messages", [])
-    history = []
-
-    for m in messages:
-        if isinstance(m, dict) and "role" in m and "content" in m:
-            history.append({"role": m["role"], "content": m["content"]})
-
-    history.append({"role": "user", "content": user_message})
-
-    roast_level = body.get("roast_level", body.get("roastLevel", 0))
-
-    reply = generate_response(
-        messages=history,
-        roast_level=roast_level
-    )
-
+    messages = [{"role": "user", "content": user_message}]
+    reply = generate_response(messages)
     return {"reply": reply}
-
-# ============================================================
-# IMAGE UPLOAD (SAFE PLACEHOLDER)
-# ============================================================
 
 @app.post("/vision")
 async def vision(file: UploadFile = File(...)):
     return {"message": "Image received 🖼️ — vision coming soon"}
-
-# ============================================================
-# FILE UPLOAD (SAFE PLACEHOLDER)
-# ============================================================
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
