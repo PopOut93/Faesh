@@ -1,160 +1,179 @@
-import random
-import re
+import datetime
+from difflib import get_close_matches
 
-# =========================
-# MODE TRIGGERS
-# =========================
+# -------------------------
+# KEYWORDS & COMMANDS
+# -------------------------
+
 SENSEI_ON = ["sensei", "sensei mode"]
-SENSEI_OFF = ["toasted 3d"]
+SENSEI_OFF = ["toasted 3d", "back to fashion"]
 
-DEEPER_TRIGGERS = [
-    "deeper",
-    "go deeper",
-    "explain more",
-    "tell me more",
-    "keep going",
-]
+DEEPER_COMMANDS = ["deeper", "go deeper", "more", "continue"]
+ANGLE_COMMANDS = ["technical", "cultural", "philosophical"]
 
-# =========================
-# GREETINGS (RANDOMIZED)
-# =========================
-OPENINGS = [
-    "Yo! What’s good? Fæsh here — your fashion and creativity sidekick. What vibe are we on?",
-    "Hey hey 👋 Fæsh checking in. Style, questions, or curiosity today?",
-    "What’s poppin’? Fæsh in the building — fashion or facts?",
-    "Fæsh here 🧥✨ Ready to talk drip, ideas, or both?",
-]
+# -------------------------
+# UTILITIES
+# -------------------------
 
-# =========================
-# CORE RESPONSE ENGINE
-# =========================
-def generate_response(messages, roast_level=0):
+def normalize(text: str) -> str:
+    return text.lower().strip()
+
+def is_command(text, commands):
+    text = normalize(text)
+    return any(cmd in text for cmd in commands)
+
+def fuzzy_match(text, targets):
+    words = text.lower().split()
+    for w in words:
+        if get_close_matches(w, targets, n=1, cutoff=0.8):
+            return True
+    return False
+
+# -------------------------
+# CORE INTELLIGENCE
+# -------------------------
+
+def smart_answer(question: str) -> str:
     """
-    Core Faesh brain.
-    - Fashion-first personality
-    - Sensei = expanded knowledge
-    - Deeper = continuation, not mode switch
+    This is the CORE knowledge brain.
+    It answers fully and naturally.
     """
 
-    last_user_msg = messages[-1]["content"].lower().strip()
-
-    # Initialize session state
-    sensei_active = False
-    continuing = False
-
-    # Inspect history for mode
-    for m in messages:
-        if m["role"] == "assistant":
-            if "🔥 Sensei mode activated" in m["content"]:
-                sensei_active = True
-            if "🧥 Fashion mode restored" in m["content"]:
-                sensei_active = False
-
-    # Mode switching
-    if last_user_msg in SENSEI_ON:
-        return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
-
-    if last_user_msg in SENSEI_OFF:
-        return "🧥 Fashion mode restored. Back to style, drip, and creativity."
-
-    # Deeper continuation
-    if any(trigger in last_user_msg for trigger in DEEPER_TRIGGERS):
-        continuing = True
-
-    # =========================
-    # ANSWER GENERATION
-    # =========================
-    if sensei_active:
-        return sensei_answer(last_user_msg, continuing)
-
-    return fashion_answer(last_user_msg, continuing)
-
-
-# =========================
-# FASHION MODE ANSWERS
-# =========================
-def fashion_answer(question, continuing):
-    base_answer = smart_answer(question)
-
-    fashion_twist = random.choice([
-        "Just like fashion, it’s all about structure, expression, and how rules bend over time.",
-        "Think of it like an outfit — layers matter, and context makes the statement.",
-        "Style and ideas evolve the same way trends do — nothing exists in isolation.",
-    ])
-
-    if continuing:
-        return f"{base_answer}\n\nLet’s zoom in a bit more 👀\n{fashion_twist}"
-
-    return (
-        f"{base_answer}\n\n"
-        f"{fashion_twist} "
-        f"Want to go deeper, or want me to style this idea into something wearable? 🧥✨"
-    )
-
-
-# =========================
-# SENSEI MODE ANSWERS
-# =========================
-def sensei_answer(question, continuing):
-    deep_answer = smart_answer(question, deep=True)
-
-    if continuing:
-        return (
-            f"{deep_answer}\n\n"
-            "We can keep drilling down if you want — history, science, philosophy, whatever angle you choose."
-        )
-
-    return (
-        f"{deep_answer}\n\n"
-        "If you want more depth, just say **Deeper**.\n"
-        "Say **Toasted 3D** to return to fashion."
-    )
-
-
-# =========================
-# KNOWLEDGE CORE
-# =========================
-def smart_answer(question, deep=False):
-    q = question.lower()
+    q = normalize(question)
 
     if "law" in q:
-        if deep:
-            return (
-                "Law didn’t come from a single inventor — it evolved over thousands of years. "
-                "Early legal systems like the Code of Hammurabi in Mesopotamia formalized rules "
-                "to create order, fairness, and accountability in society."
-            )
         return (
-            "Law has evolved over centuries through various cultures and societies, "
-            "so it’s not attributed to a single inventor. Ancient civilizations like "
-            "Mesopotamia laid the groundwork with early legal codes."
-        )
-
-    if "math" in q:
-        return (
-            "Math is the study of numbers, patterns, and relationships — a universal language "
-            "used to understand logic, space, and change."
-        )
-
-    if "science" in q:
-        return (
-            "Science is the systematic study of the natural world through observation, "
-            "experimentation, and evidence."
+            "Law has evolved over centuries through many cultures rather than being "
+            "invented by a single person. Early legal systems like the Code of Hammurabi "
+            "in Mesopotamia formalized rules to create order, fairness, and accountability."
         )
 
     if "dark matter" in q:
         return (
-            "Dark matter is a mysterious form of matter that doesn’t emit light but exerts "
-            "gravitational effects. Scientists believe it makes up most of the universe’s mass."
+            "Dark matter is a mysterious form of matter that does not emit light but "
+            "exerts gravitational influence. Scientists believe it makes up most of the "
+            "universe’s mass, even though we can’t see it directly."
         )
 
-    if "who created you" in q:
+    if "math" in q:
         return (
-            "I was created by Patrick Wilkerson Sr — my creator and dad — as a fashion and creativity AI."
+            "Math is the study of numbers, patterns, structures, and relationships. "
+            "It helps us describe reality, solve problems, and understand how things change."
         )
 
-    # Fallback
+    if "god" in q:
+        return (
+            "Different cultures and philosophies define God in many ways — as a creator, "
+            "a higher power, universal consciousness, or moral ideal."
+        )
+
     return (
-        "That’s a great question. I can break it down from a fashion lens, "
-        "a technical angle, or a cultural one — your move."
+        "That’s an interesting question. Let’s break it down in a way that actually makes sense."
     )
+
+# -------------------------
+# ✨ THE PERSONALITY BLEED (LOCKED)
+# -------------------------
+
+def fashion_blend(answer: str) -> str:
+    """
+    🚨 DO NOT TOUCH THIS LOGIC
+    This is the accidental perfection layer.
+    """
+
+    fashion_bridge = (
+        " Just like fashion, this is really about structure, expression, and how rules "
+        "or ideas shape identity and culture."
+    )
+
+    style_prompt = (
+        " Speaking of which, if this idea had a look or vibe, what would it be?"
+    )
+
+    return answer + fashion_bridge + style_prompt
+
+# -------------------------
+# DEPTH EXPANSION
+# -------------------------
+
+def deepen_answer(previous_answer: str, angle: str | None = None) -> str:
+    """
+    Continues the SAME answer — no reset, no redirect.
+    """
+
+    if angle == "technical":
+        return (
+            previous_answer
+            + " On a technical level, this involves systems, frameworks, and formalized structures "
+            "that govern how things function beneath the surface."
+        )
+
+    if angle == "cultural":
+        return (
+            previous_answer
+            + " Culturally, this idea reflects how societies express values, power, and identity over time."
+        )
+
+    if angle == "philosophical":
+        return (
+            previous_answer
+            + " Philosophically, it raises questions about meaning, authority, and how humans create order."
+        )
+
+    return (
+        previous_answer
+        + " If you want, we can keep peeling back layers and explore it even deeper."
+    )
+
+# -------------------------
+# MAIN RESPONSE ENGINE
+# -------------------------
+
+def generate_response(messages: list, session_state: dict | None = None) -> str:
+    if session_state is None:
+        session_state = {}
+
+    user_message = messages[-1]["content"]
+    text = normalize(user_message)
+
+    # -------------------------
+    # MODE SWITCHING
+    # -------------------------
+
+    if is_command(text, SENSEI_ON):
+        session_state["mode"] = "sensei"
+        return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
+
+    if is_command(text, SENSEI_OFF):
+        session_state["mode"] = "fashion"
+        return "🧥 Fashion mode restored. Back to style, drip, and creativity."
+
+    # -------------------------
+    # CONTINUATION (DEEPER)
+    # -------------------------
+
+    if is_command(text, DEEPER_COMMANDS):
+        last_answer = session_state.get("last_answer")
+        if last_answer:
+            expanded = deepen_answer(last_answer)
+            session_state["last_answer"] = expanded
+            return expanded
+
+    for angle in ANGLE_COMMANDS:
+        if angle in text:
+            last_answer = session_state.get("last_answer")
+            if last_answer:
+                expanded = deepen_answer(last_answer, angle)
+                session_state["last_answer"] = expanded
+                return expanded
+
+    # -------------------------
+    # NORMAL ANSWER FLOW (ALWAYS BLEND FIRST)
+    # -------------------------
+
+    base = smart_answer(user_message)
+    blended = fashion_blend(base)
+
+    session_state["last_answer"] = blended
+
+    return blended
