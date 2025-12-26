@@ -1,146 +1,152 @@
-import datetime
-from difflib import get_close_matches
+# ai/engine.py
+
+from typing import List, Dict
 
 # -------------------------
-# COMMANDS
+# MODE CONSTANTS
 # -------------------------
+MODE_FASHION = "fashion"
+MODE_SENSEI = "sensei"
 
 SENSEI_ON = ["sensei", "sensei mode"]
 SENSEI_OFF = ["toasted 3d", "back to fashion"]
 
-DEEPER_COMMANDS = ["deeper", "go deeper", "more", "continue"]
-ANGLE_COMMANDS = ["technical", "cultural", "philosophical"]
+DEEPER_TRIGGERS = ["deeper", "go deeper"]
+TECHNICAL_TRIGGERS = ["technical", "tech"]
+CULTURAL_TRIGGERS = ["cultural", "culture"]
 
 # -------------------------
-# HELPERS
+# SAFE RESPONSE HELPERS
 # -------------------------
-
-def normalize(text):
-    return str(text).lower().strip()
-
-def is_command(text, commands):
-    text = normalize(text)
-    return any(cmd in text for cmd in commands)
+def safe_text(val):
+    return val if isinstance(val, str) and val.strip() else None
 
 # -------------------------
-# CORE KNOWLEDGE
+# CORE ENGINE
 # -------------------------
+def generate_response(
+    messages: List[Dict[str, str]],
+    session_state: Dict = None
+) -> str:
+    """
+    Crash-proof Faesh engine.
+    Always returns a STRING.
+    """
 
-def smart_answer(question):
-    q = normalize(question)
-
-    if "law" in q:
-        return (
-            "Law has evolved over centuries through various cultures and societies, "
-            "so it isn't attributed to a single inventor. Early systems like the Code "
-            "of Hammurabi helped formalize rules for order and fairness."
-        )
-
-    if "dark matter" in q:
-        return (
-            "Dark matter is a mysterious substance that doesn’t emit light but has mass "
-            "and gravity. Scientists believe it makes up most of the universe."
-        )
-
-    if "math" in q:
-        return (
-            "Math is the study of numbers, patterns, structures, and relationships. "
-            "It helps us understand logic, quantity, and change."
-        )
-
-    if "god" in q:
-        return (
-            "Different cultures and philosophies describe God in different ways — "
-            "as a creator, higher power, or universal consciousness."
-        )
-
-    return (
-        "That’s a solid question. Let’s unpack it in a way that actually makes sense."
-    )
-
-# -------------------------
-# 🔒 BLEND-FIRST (DO NOT TOUCH)
-# -------------------------
-
-def fashion_blend(answer):
-    return (
-        answer
-        + " Just like fashion, this is about structure, expression, and identity."
-        + " Speaking of which, if this idea had a look or vibe, what would it be?"
-    )
-
-# -------------------------
-# DEPTH ENGINE (SAFE)
-# -------------------------
-
-def deepen_answer(previous_answer, angle=None):
-    if not previous_answer:
-        return "Let’s start from the top — what do you want to explore?"
-
-    if angle == "technical":
-        return (
-            previous_answer
-            + " Technically speaking, this involves formal systems, rules, and frameworks "
-            "that operate beneath the surface."
-        )
-
-    if angle == "cultural":
-        return (
-            previous_answer
-            + " From a cultural perspective, this reflects how societies shape values "
-            "and identity over time."
-        )
-
-    if angle == "philosophical":
-        return (
-            previous_answer
-            + " Philosophically, it raises questions about meaning, authority, and order."
-        )
-
-    return previous_answer + " We can keep peeling back layers if you want."
-
-# -------------------------
-# MAIN ENGINE (CRASH-PROOF)
-# -------------------------
-
-def generate_response(messages, session_state=None):
     try:
-        if session_state is None or not isinstance(session_state, dict):
+        # -------------------------
+        # SESSION INIT
+        # -------------------------
+        if session_state is None:
             session_state = {}
 
-        user_message = messages[-1]["content"]
-        text = normalize(user_message)
+        mode = session_state.get("mode", MODE_FASHION)
+        last_answer = session_state.get("last_answer")
 
-        # ---- MODE SWITCHING ----
-        if is_command(text, SENSEI_ON):
-            session_state["mode"] = "sensei"
+        user_message = messages[-1]["content"].lower().strip()
+
+        # -------------------------
+        # MODE SWITCHING
+        # -------------------------
+        if user_message in SENSEI_ON:
+            session_state["mode"] = MODE_SENSEI
             return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
 
-        if is_command(text, SENSEI_OFF):
-            session_state["mode"] = "fashion"
+        if user_message in SENSEI_OFF:
+            session_state["mode"] = MODE_FASHION
             return "🧥 Fashion mode restored. Back to style, drip, and creativity."
 
-        # ---- CONTINUATION ----
-        if is_command(text, DEEPER_COMMANDS):
-            last = session_state.get("last_answer")
-            expanded = deepen_answer(last)
-            session_state["last_answer"] = expanded
-            return expanded
+        # -------------------------
+        # DEPTH CONTINUATION
+        # -------------------------
+        if (
+            user_message in DEEPER_TRIGGERS
+            or user_message in TECHNICAL_TRIGGERS
+            or user_message in CULTURAL_TRIGGERS
+        ):
+            if last_answer:
+                return expand_answer(
+                    last_answer,
+                    depth=user_message
+                )
+            return "Tell me what you want to go deeper on."
 
-        for angle in ANGLE_COMMANDS:
-            if angle in text:
-                last = session_state.get("last_answer")
-                expanded = deepen_answer(last, angle)
-                session_state["last_answer"] = expanded
-                return expanded
+        # -------------------------
+        # NORMAL ANSWER FLOW
+        # -------------------------
+        if mode == MODE_SENSEI:
+            answer = sensei_answer(user_message)
+        else:
+            answer = fashion_blended_answer(user_message)
 
-        # ---- NORMAL FLOW ----
-        base = smart_answer(user_message)
-        blended = fashion_blend(base)
+        # -------------------------
+        # SAVE THREAD
+        # -------------------------
+        session_state["last_answer"] = answer
 
-        session_state["last_answer"] = blended
-        return blended
+        return answer
 
     except Exception as e:
-        # 🚨 NEVER FREEZE AGAIN
-        return "I’m here — something tripped me up for a second. Try that again 🖤"
+        # 🚑 HARD FAILSAFE — NEVER CRASH
+        return "I’m here — try asking that again for me 🖤"
+
+# -------------------------
+# ANSWER GENERATORS
+# -------------------------
+def sensei_answer(prompt: str) -> str:
+    """
+    Full-power general knowledge.
+    NO redirection.
+    """
+    return (
+        f"{general_knowledge(prompt)}\n\n"
+        "If you want more depth, just say **Deeper**.\n"
+        "Say **Toasted 3D** to return to fashion."
+    )
+
+def fashion_blended_answer(prompt: str) -> str:
+    """
+    🔒 BLEND-FIRST RULE (DO NOT REMOVE)
+    """
+    return (
+        f"{general_knowledge(prompt)}\n\n"
+        "From a style lens, everything has structure, balance, and expression — "
+        "just like fashion. Want help styling this idea into your look? 👔✨"
+    )
+
+def expand_answer(previous: str, depth: str) -> str:
+    """
+    Continue SAME answer thread.
+    """
+    return (
+        f"{previous}\n\n"
+        f"Let’s go {depth} — here’s more detail layered on top."
+    )
+
+def general_knowledge(prompt: str) -> str:
+    """
+    Lightweight safe reasoning.
+    (Codex / LLM can replace this later.)
+    """
+    if "law" in prompt:
+        return (
+            "Law evolved over thousands of years across civilizations like "
+            "Mesopotamia, Egypt, Greece, and Rome to organize society."
+        )
+    if "math" in prompt:
+        return (
+            "Math is the study of numbers, patterns, and relationships that help "
+            "us describe and understand the world."
+        )
+    if "dark matter" in prompt:
+        return (
+            "Dark matter is a mysterious form of matter that doesn’t emit light "
+            "but affects the universe through gravity."
+        )
+    if "god" in prompt:
+        return (
+            "Different cultures define God in different ways — as a creator, "
+            "a higher power, or a universal consciousness."
+        )
+
+    return "Tell me more — I’m listening."
