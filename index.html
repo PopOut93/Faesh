@@ -288,7 +288,6 @@
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-          // Surface a readable message
           const msg = data?.detail || data?.message || `Backend error (${res.status})`;
           throw new Error(msg);
         }
@@ -314,7 +313,6 @@
 
       try {
         const payload = {
-          // backend accepts message/text/input — we send message
           message: text,
           messages: history,
           roast_level: roast_level
@@ -333,7 +331,6 @@
       }
     }
 
-    // Enter-to-send
     inputEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -343,14 +340,12 @@
 
     sendBtn.addEventListener("click", () => sendMessage());
 
-    // Upload buttons (safe placeholders)
     imgBtn.addEventListener("click", () => imgInput.click());
     fileBtn.addEventListener("click", () => fileInput.click());
 
     imgInput.addEventListener("change", async () => {
       if (!imgInput.files || !imgInput.files[0]) return;
       addMessage("you", "🖼️ (image selected)");
-      // You already have /vision on backend; keeping this minimal for now.
       addMessage("faesh", "Image received 🖼️ — vision coming soon");
       imgInput.value = "";
     });
@@ -358,13 +353,11 @@
     fileInput.addEventListener("change", async () => {
       if (!fileInput.files || !fileInput.files[0]) return;
       addMessage("you", "📎 (file selected)");
-      // You already have /upload on backend; keeping this minimal for now.
       addMessage("faesh", "File received 📎 — file support coming soon");
       fileInput.value = "";
     });
 
-    // Initial greeting
-    addMessage("faesh", "Yo! What’s good? Fæsh here — your fashion and creativity sidekick, created by Patrick Wilkerson Sr. What vibe are we on?");
+    // ✅ Removed forced initial greeting here (backend controls greetings)
   </script>
 </body>
 </html>
