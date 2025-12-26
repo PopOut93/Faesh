@@ -1,47 +1,37 @@
 from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from ai.engine import generate_response
 
 app = FastAPI()
 
-# =========================
-# 🔐 HARD CORS LOCK (RENDER SAFE)
-# =========================
-ALLOWED_ORIGINS = [
-    "https://popout93.github.io",
-    "https://faesh.onrender.com",
-    "http://localhost:3000",
-    "http://localhost:5173",
-]
-
+# -------------------------
+# CORS (STABLE & OPEN)
+# -------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# =========================
+# -------------------------
 # HEALTH CHECK
-# =========================
+# -------------------------
 @app.get("/")
-async def health():
-    return JSONResponse(
-        content={"status": "Fæsh online 🖤"},
-        headers={"Access-Control-Allow-Origin": "*"},
-    )
+def health():
+    return {"status": "Fæsh online 🖤"}
 
-# =========================
-# CHAT ENDPOINT (CORS SAFE)
-# =========================
+# -------------------------
+# CHAT ENDPOINT (CRASH-PROOF)
+# -------------------------
 @app.post("/chat")
 async def chat(request: Request):
     try:
         body = await request.json()
 
+        # --- Extract message safely
         user_message = (
             body.get("message")
             or body.get("text")
@@ -51,59 +41,59 @@ async def chat(request: Request):
         if isinstance(user_message, dict):
             user_message = user_message.get("content")
 
-        if not user_message:
-            reply = "I hear you. Say that again for me 🖤"
-        else:
-            messages = body.get("messages", [])
-            history = []
+        if not isinstance(user_message, str) or not user_message.strip():
+            return {
+                "reply": "I hear you — say that again for me 🖤",
+                "session_state": {}
+            }
 
-            for m in messages:
-                if isinstance(m, dict) and "role" in m and "content" in m:
-                    history.append(
-                        {"role": m["role"], "content": m["content"]}
-                    )
+        # --- Messages history
+        messages = body.get("messages", [])
+        if not isinstance(messages, list):
+            messages = []
 
-            history.append({"role": "user", "content": user_message})
+        messages.append({
+            "role": "user",
+            "content": user_message
+        })
 
-            roast_level = body.get("roast_level", body.get("roastLevel", 0))
+        # --- Session state (ALWAYS A DICT)
+        session_state = body.get("session_state")
+        if not isinstance(session_state, dict):
+            session_state = {}
 
-            reply = generate_response(
-                messages=history,
-                roast_level=roast_level,
-            )
-
-        return JSONResponse(
-            content={"reply": reply},
-            headers={
-                "Access-Control-Allow-Origin": "https://popout93.github.io"
-            },
+        # --- Generate reply (engine is already guarded)
+        reply = generate_response(
+            messages=messages,
+            session_state=session_state
         )
 
-    except Exception as e:
-        return JSONResponse(
-            content={"reply": "⚠️ Faesh froze — backend error."},
-            headers={
-                "Access-Control-Allow-Origin": "https://popout93.github.io"
-            },
-            status_code=500,
-        )
+        # --- Force safe output
+        if not isinstance(reply, str):
+            reply = "I’m here — try asking that again for me 🖤"
 
-# =========================
-# IMAGE UPLOAD (SAFE)
-# =========================
+        return {
+            "reply": reply,
+            "session_state": session_state
+        }
+
+    except Exception:
+        # 🚑 ABSOLUTE FAILSAFE — NEVER 500
+        return {
+            "reply": "I’m here — try asking that again for me 🖤",
+            "session_state": {}
+        }
+
+# -------------------------
+# IMAGE UPLOAD (SAFE STUB)
+# -------------------------
 @app.post("/vision")
 async def vision(file: UploadFile = File(...)):
-    return JSONResponse(
-        content={"message": "Image received 🖼️ — vision coming soon"},
-        headers={"Access-Control-Allow-Origin": "*"},
-    )
+    return {"message": "🖼️ Image received — fashion vision coming soon"}
 
-# =========================
-# FILE UPLOAD (SAFE)
-# =========================
+# -------------------------
+# FILE UPLOAD (SAFE STUB)
+# -------------------------
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
-    return JSONResponse(
-        content={"message": "File received 📎 — file support coming soon"},
-        headers={"Access-Control-Allow-Origin": "*"},
-    )
+    return {"message": "📎 File received — creative tools coming soon"}
