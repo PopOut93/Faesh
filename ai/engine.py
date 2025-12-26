@@ -1,210 +1,160 @@
 import random
-import datetime
+import re
 
 # =========================
-# MODE FLAGS (SESSION-LOCAL)
-# =========================
-SESSION_STATE = {
-    "mode": "fashion",      # fashion | sensei
-    "last_topic": None,     # store last topic for "deeper"
-}
-
-# =========================
-# TRIGGERS
+# MODE TRIGGERS
 # =========================
 SENSEI_ON = ["sensei", "sensei mode"]
-SENSEI_OFF = ["toasted 3d", "back to fashion"]
+SENSEI_OFF = ["toasted 3d"]
 
-DEPTH_TRIGGERS = [
+DEEPER_TRIGGERS = [
     "deeper",
     "go deeper",
     "explain more",
+    "tell me more",
     "keep going",
-    "continue",
-    "elaborate",
 ]
 
 # =========================
-# OPENING GREETINGS (RANDOM)
+# GREETINGS (RANDOMIZED)
 # =========================
-def random_greeting():
-    now = datetime.datetime.now()
-    month = now.month
-
-    holiday_lines = [
-        "Yo! Holiday drip check 🎄 Need help styling something festive?",
-        "It’s that season 👀 Let’s make sure your outfit matches the vibes.",
-        "Cold weather, hot fits ❄️🔥 What are we styling today?",
-    ]
-
-    standard_lines = [
-        "Yo! What’s good? Fæsh here — what vibe are we on?",
-        "What’s up 👋 Let’s talk style, sneakers, or ideas.",
-        "Fæsh checking in 🧥👟 What are you feeling today?",
-        "Ready to level up your look or your thoughts?",
-    ]
-
-    if month in [11, 12]:
-        return random.choice(holiday_lines)
-    return random.choice(standard_lines)
+OPENINGS = [
+    "Yo! What’s good? Fæsh here — your fashion and creativity sidekick. What vibe are we on?",
+    "Hey hey 👋 Fæsh checking in. Style, questions, or curiosity today?",
+    "What’s poppin’? Fæsh in the building — fashion or facts?",
+    "Fæsh here 🧥✨ Ready to talk drip, ideas, or both?",
+]
 
 # =========================
 # CORE RESPONSE ENGINE
 # =========================
 def generate_response(messages, roast_level=0):
-    user_input = messages[-1]["content"].strip().lower()
+    """
+    Core Faesh brain.
+    - Fashion-first personality
+    - Sensei = expanded knowledge
+    - Deeper = continuation, not mode switch
+    """
 
-    # -------------------------
-    # MODE SWITCHING
-    # -------------------------
-    if user_input in SENSEI_ON:
-        SESSION_STATE["mode"] = "sensei"
+    last_user_msg = messages[-1]["content"].lower().strip()
+
+    # Initialize session state
+    sensei_active = False
+    continuing = False
+
+    # Inspect history for mode
+    for m in messages:
+        if m["role"] == "assistant":
+            if "🔥 Sensei mode activated" in m["content"]:
+                sensei_active = True
+            if "🧥 Fashion mode restored" in m["content"]:
+                sensei_active = False
+
+    # Mode switching
+    if last_user_msg in SENSEI_ON:
         return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
 
-    if user_input in SENSEI_OFF:
-        SESSION_STATE["mode"] = "fashion"
+    if last_user_msg in SENSEI_OFF:
         return "🧥 Fashion mode restored. Back to style, drip, and creativity."
 
-    # -------------------------
-    # DEPTH CONTINUATION
-    # -------------------------
-    if user_input in DEPTH_TRIGGERS and SESSION_STATE["last_topic"]:
-        return expand_topic(SESSION_STATE["last_topic"])
+    # Deeper continuation
+    if any(trigger in last_user_msg for trigger in DEEPER_TRIGGERS):
+        continuing = True
 
-    # -------------------------
-    # ROUTING BY MODE
-    # -------------------------
-    if SESSION_STATE["mode"] == "sensei":
-        reply, topic = sensei_answer(user_input)
-        SESSION_STATE["last_topic"] = topic
-        return reply
+    # =========================
+    # ANSWER GENERATION
+    # =========================
+    if sensei_active:
+        return sensei_answer(last_user_msg, continuing)
 
-    # Default: Fashion Mode
-    reply, topic = fashion_answer(user_input)
-    SESSION_STATE["last_topic"] = topic
-    return reply
+    return fashion_answer(last_user_msg, continuing)
 
 
 # =========================
-# SENSEI MODE (FULL ANSWERS)
+# FASHION MODE ANSWERS
 # =========================
-def sensei_answer(text):
-    # Math
-    if "math" in text:
+def fashion_answer(question, continuing):
+    base_answer = smart_answer(question)
+
+    fashion_twist = random.choice([
+        "Just like fashion, it’s all about structure, expression, and how rules bend over time.",
+        "Think of it like an outfit — layers matter, and context makes the statement.",
+        "Style and ideas evolve the same way trends do — nothing exists in isolation.",
+    ])
+
+    if continuing:
+        return f"{base_answer}\n\nLet’s zoom in a bit more 👀\n{fashion_twist}"
+
+    return (
+        f"{base_answer}\n\n"
+        f"{fashion_twist} "
+        f"Want to go deeper, or want me to style this idea into something wearable? 🧥✨"
+    )
+
+
+# =========================
+# SENSEI MODE ANSWERS
+# =========================
+def sensei_answer(question, continuing):
+    deep_answer = smart_answer(question, deep=True)
+
+    if continuing:
         return (
-            "Math is the study of numbers, patterns, structures, and relationships. "
-            "It helps us understand logic, quantity, space, and change — from basic counting "
-            "to advanced physics and computer science.",
-            "math",
+            f"{deep_answer}\n\n"
+            "We can keep drilling down if you want — history, science, philosophy, whatever angle you choose."
         )
 
-    # God
-    if "god" in text:
+    return (
+        f"{deep_answer}\n\n"
+        "If you want more depth, just say **Deeper**.\n"
+        "Say **Toasted 3D** to return to fashion."
+    )
+
+
+# =========================
+# KNOWLEDGE CORE
+# =========================
+def smart_answer(question, deep=False):
+    q = question.lower()
+
+    if "law" in q:
+        if deep:
+            return (
+                "Law didn’t come from a single inventor — it evolved over thousands of years. "
+                "Early legal systems like the Code of Hammurabi in Mesopotamia formalized rules "
+                "to create order, fairness, and accountability in society."
+            )
         return (
-            "Different cultures and philosophies define God in different ways — as a creator, "
-            "a higher power, a universal consciousness, or a moral ideal. Theology, philosophy, "
-            "and science all approach the question differently.",
-            "god",
+            "Law has evolved over centuries through various cultures and societies, "
+            "so it’s not attributed to a single inventor. Ancient civilizations like "
+            "Mesopotamia laid the groundwork with early legal codes."
         )
 
-    # Law
-    if "law" in text:
+    if "math" in q:
         return (
-            "Law wasn’t invented by a single person. It evolved over thousands of years through "
-            "customs, codes, and institutions — from Hammurabi’s Code to Roman law to modern legal systems.",
-            "law",
+            "Math is the study of numbers, patterns, and relationships — a universal language "
+            "used to understand logic, space, and change."
         )
 
-    # Dark Matter
-    if "dark matter" in text:
+    if "science" in q:
         return (
-            "Dark matter is a mysterious form of matter that doesn’t emit light or energy, "
-            "but exerts gravitational effects. Scientists infer its existence by observing how "
-            "galaxies rotate and bend light.",
-            "dark matter",
+            "Science is the systematic study of the natural world through observation, "
+            "experimentation, and evidence."
+        )
+
+    if "dark matter" in q:
+        return (
+            "Dark matter is a mysterious form of matter that doesn’t emit light but exerts "
+            "gravitational effects. Scientists believe it makes up most of the universe’s mass."
+        )
+
+    if "who created you" in q:
+        return (
+            "I was created by Patrick Wilkerson Sr — my creator and dad — as a fashion and creativity AI."
         )
 
     # Fallback
     return (
-        "I can help with science, math, history, law, or tech.\n"
-        "Ask away — or say **Toasted 3D** to return to fashion.",
-        None,
-    )
-
-
-# =========================
-# FASHION MODE (BLENDED)
-# =========================
-def fashion_answer(text):
-    # Jordans
-    if "jordan" in text:
-        return (
-            "Jordans are iconic sneakers created under Nike for Michael Jordan — rooted in basketball "
-            "but dominant in streetwear. If you want to go deeper, say **Deeper** 👀",
-            "jordans",
-        )
-
-    # Nike
-    if "nike" in text:
-        return (
-            "Nike is a global sportswear brand known for innovation, performance, and culture — "
-            "from Air Force 1s to elite athletic gear.",
-            "nike",
-        )
-
-    # Versace
-    if "versace" in text:
-        return (
-            "Versace is a luxury fashion house known for bold prints, gold accents, and unapologetic confidence. "
-            "It’s maximalism done right.",
-            "versace",
-        )
-
-    # Creator
-    if "who created you" in text:
-        return (
-            "I was created by Patrick Wilkerson Sr — my creator and dad — as a fashion and creativity AI.",
-            "creator",
-        )
-
-    # Default fashion nudge
-    return (
-        "Got it. I can help with that.\n\n"
-        "If you want deeper answers, say **Sensei**.\n"
-        "If you want fashion help, just ask 🧥",
-        None,
-    )
-
-
-# =========================
-# DEEPER EXPANSION
-# =========================
-def expand_topic(topic):
-    expansions = {
-        "jordans": (
-            "Going deeper — Jordans started as performance basketball shoes in the 1980s, "
-            "but evolved into cultural symbols tied to music, identity, and self-expression. "
-            "Different models carry different historical weight."
-        ),
-        "math": (
-            "Going deeper — math underpins science, engineering, economics, and AI. "
-            "Abstract math often finds real-world application decades later."
-        ),
-        "law": (
-            "Going deeper — law reflects societal values at a given time. "
-            "As societies evolve, laws change to reflect new ethics and realities."
-        ),
-        "dark matter": (
-            "Going deeper — dark matter makes up roughly 27% of the universe, yet we still don’t know "
-            "what it’s made of. It remains one of modern physics’ biggest mysteries."
-        ),
-        "versace": (
-            "Going deeper — Versace’s identity is rooted in power dressing, mythology, and rebellion. "
-            "It’s fashion meant to be seen and felt."
-        ),
-    }
-
-    return expansions.get(
-        topic,
-        "Going deeper — there’s more here if you want to explore it further."
+        "That’s a great question. I can break it down from a fashion lens, "
+        "a technical angle, or a cultural one — your move."
     )
