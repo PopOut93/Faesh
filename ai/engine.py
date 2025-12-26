@@ -1,34 +1,4 @@
-import random
-import datetime
-
-# -------------------------
-# GREETING LOGIC
-# -------------------------
-
-def random_greeting():
-    now = datetime.datetime.now()
-    month = now.month
-
-    holiday_greetings = []
-
-    if month == 12:
-        holiday_greetings.append("🎄 Hey! Fæsh here — holiday fits on your mind?")
-    if month == 10:
-        holiday_greetings.append("🎃 What’s good? Fæsh here — spooky season drip ready?")
-    if month == 2:
-        holiday_greetings.append("❤️ Hey there — need help styling something special?")
-
-    general_greetings = [
-        "Hey! Fæsh here — what vibe are we on today?",
-        "What’s up 👋 Ready to talk style?",
-        "Yo — let’s get into some fashion ideas 🧥",
-        "Hey hey! Need outfit inspo or just vibing?",
-        "What’s good? Let’s build a look."
-    ]
-
-    options = holiday_greetings + general_greetings
-    return random.choice(options)
-
+# ai/engine.py
 
 # -------------------------
 # MODE DETECTION
@@ -55,31 +25,31 @@ def detect_mode(text, session_state):
 def generate_response(messages, session_state):
     """
     Core Faesh brain.
-    - Always blends fashion unless Sensei mode is active
-    - Sensei mode only DEEPENS, never redirects
+
+    RULES (LOCKED):
+    - No automatic greetings
+    - Fashion blend ALWAYS first
+    - Sensei mode ONLY deepens (never redirects)
+    - Conversation continues on same thread
     """
 
     if "mode" not in session_state:
         session_state["mode"] = "fashion"
 
-    # First interaction = greeting
-    if len(messages) == 1:
-        return random_greeting()
-
     user_input = messages[-1]["content"]
-    mode_switch = detect_mode(user_input, session_state)
 
+    mode_switch = detect_mode(user_input, session_state)
     if mode_switch:
         return mode_switch
 
     # -------------------------
-    # SENSEI MODE
+    # SENSEI MODE (DEEPEN ONLY)
     # -------------------------
     if session_state["mode"] == "sensei":
         return (
-            f"{answer_general_question(user_input)}\n\n"
-            "If you want more depth, just say **Deeper**.\n"
-            "Say **Toasted 3D** to return to fashion."
+            fashion_blended_answer(user_input)
+            + "\n\nIf you want more depth, just say **Deeper**.\n"
+            + "Say **Toasted 3D** to return to fashion."
         )
 
     # -------------------------
@@ -92,16 +62,14 @@ def generate_response(messages, session_state):
 # ANSWER HELPERS
 # -------------------------
 
-def answer_general_question(text):
-    return f"{basic_answer(text)}"
-
-
 def fashion_blended_answer(text):
     base = basic_answer(text)
+
     fashion_twist = (
         "\n\nFrom a style lens, everything has structure, balance, and expression — "
         "just like fashion. Want help styling this idea into your look? 👔✨"
     )
+
     return base + fashion_twist
 
 
@@ -131,5 +99,8 @@ def basic_answer(text):
             "Fæsh is a fashion and creativity AI designed to help people express "
             "their identity through style."
         )
+
+    if "deeper" in text_lower:
+        return "Let’s go deeper — what angle do you want to explore next?"
 
     return "Got it. Tell me more — I’m listening."
