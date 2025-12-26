@@ -2,7 +2,7 @@ import datetime
 from difflib import get_close_matches
 
 # -------------------------
-# KEYWORDS & COMMANDS
+# COMMANDS
 # -------------------------
 
 SENSEI_ON = ["sensei", "sensei mode"]
@@ -12,168 +12,135 @@ DEEPER_COMMANDS = ["deeper", "go deeper", "more", "continue"]
 ANGLE_COMMANDS = ["technical", "cultural", "philosophical"]
 
 # -------------------------
-# UTILITIES
+# HELPERS
 # -------------------------
 
-def normalize(text: str) -> str:
-    return text.lower().strip()
+def normalize(text):
+    return str(text).lower().strip()
 
 def is_command(text, commands):
     text = normalize(text)
     return any(cmd in text for cmd in commands)
 
-def fuzzy_match(text, targets):
-    words = text.lower().split()
-    for w in words:
-        if get_close_matches(w, targets, n=1, cutoff=0.8):
-            return True
-    return False
-
 # -------------------------
-# CORE INTELLIGENCE
+# CORE KNOWLEDGE
 # -------------------------
 
-def smart_answer(question: str) -> str:
-    """
-    This is the CORE knowledge brain.
-    It answers fully and naturally.
-    """
-
+def smart_answer(question):
     q = normalize(question)
 
     if "law" in q:
         return (
-            "Law has evolved over centuries through many cultures rather than being "
-            "invented by a single person. Early legal systems like the Code of Hammurabi "
-            "in Mesopotamia formalized rules to create order, fairness, and accountability."
+            "Law has evolved over centuries through various cultures and societies, "
+            "so it isn't attributed to a single inventor. Early systems like the Code "
+            "of Hammurabi helped formalize rules for order and fairness."
         )
 
     if "dark matter" in q:
         return (
-            "Dark matter is a mysterious form of matter that does not emit light but "
-            "exerts gravitational influence. Scientists believe it makes up most of the "
-            "universe’s mass, even though we can’t see it directly."
+            "Dark matter is a mysterious substance that doesn’t emit light but has mass "
+            "and gravity. Scientists believe it makes up most of the universe."
         )
 
     if "math" in q:
         return (
             "Math is the study of numbers, patterns, structures, and relationships. "
-            "It helps us describe reality, solve problems, and understand how things change."
+            "It helps us understand logic, quantity, and change."
         )
 
     if "god" in q:
         return (
-            "Different cultures and philosophies define God in many ways — as a creator, "
-            "a higher power, universal consciousness, or moral ideal."
+            "Different cultures and philosophies describe God in different ways — "
+            "as a creator, higher power, or universal consciousness."
         )
 
     return (
-        "That’s an interesting question. Let’s break it down in a way that actually makes sense."
+        "That’s a solid question. Let’s unpack it in a way that actually makes sense."
     )
 
 # -------------------------
-# ✨ THE PERSONALITY BLEED (LOCKED)
+# 🔒 BLEND-FIRST (DO NOT TOUCH)
 # -------------------------
 
-def fashion_blend(answer: str) -> str:
-    """
-    🚨 DO NOT TOUCH THIS LOGIC
-    This is the accidental perfection layer.
-    """
-
-    fashion_bridge = (
-        " Just like fashion, this is really about structure, expression, and how rules "
-        "or ideas shape identity and culture."
+def fashion_blend(answer):
+    return (
+        answer
+        + " Just like fashion, this is about structure, expression, and identity."
+        + " Speaking of which, if this idea had a look or vibe, what would it be?"
     )
 
-    style_prompt = (
-        " Speaking of which, if this idea had a look or vibe, what would it be?"
-    )
-
-    return answer + fashion_bridge + style_prompt
-
 # -------------------------
-# DEPTH EXPANSION
+# DEPTH ENGINE (SAFE)
 # -------------------------
 
-def deepen_answer(previous_answer: str, angle: str | None = None) -> str:
-    """
-    Continues the SAME answer — no reset, no redirect.
-    """
+def deepen_answer(previous_answer, angle=None):
+    if not previous_answer:
+        return "Let’s start from the top — what do you want to explore?"
 
     if angle == "technical":
         return (
             previous_answer
-            + " On a technical level, this involves systems, frameworks, and formalized structures "
-            "that govern how things function beneath the surface."
+            + " Technically speaking, this involves formal systems, rules, and frameworks "
+            "that operate beneath the surface."
         )
 
     if angle == "cultural":
         return (
             previous_answer
-            + " Culturally, this idea reflects how societies express values, power, and identity over time."
+            + " From a cultural perspective, this reflects how societies shape values "
+            "and identity over time."
         )
 
     if angle == "philosophical":
         return (
             previous_answer
-            + " Philosophically, it raises questions about meaning, authority, and how humans create order."
+            + " Philosophically, it raises questions about meaning, authority, and order."
         )
 
-    return (
-        previous_answer
-        + " If you want, we can keep peeling back layers and explore it even deeper."
-    )
+    return previous_answer + " We can keep peeling back layers if you want."
 
 # -------------------------
-# MAIN RESPONSE ENGINE
+# MAIN ENGINE (CRASH-PROOF)
 # -------------------------
 
-def generate_response(messages: list, session_state: dict | None = None) -> str:
-    if session_state is None:
-        session_state = {}
+def generate_response(messages, session_state=None):
+    try:
+        if session_state is None or not isinstance(session_state, dict):
+            session_state = {}
 
-    user_message = messages[-1]["content"]
-    text = normalize(user_message)
+        user_message = messages[-1]["content"]
+        text = normalize(user_message)
 
-    # -------------------------
-    # MODE SWITCHING
-    # -------------------------
+        # ---- MODE SWITCHING ----
+        if is_command(text, SENSEI_ON):
+            session_state["mode"] = "sensei"
+            return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
 
-    if is_command(text, SENSEI_ON):
-        session_state["mode"] = "sensei"
-        return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
+        if is_command(text, SENSEI_OFF):
+            session_state["mode"] = "fashion"
+            return "🧥 Fashion mode restored. Back to style, drip, and creativity."
 
-    if is_command(text, SENSEI_OFF):
-        session_state["mode"] = "fashion"
-        return "🧥 Fashion mode restored. Back to style, drip, and creativity."
-
-    # -------------------------
-    # CONTINUATION (DEEPER)
-    # -------------------------
-
-    if is_command(text, DEEPER_COMMANDS):
-        last_answer = session_state.get("last_answer")
-        if last_answer:
-            expanded = deepen_answer(last_answer)
+        # ---- CONTINUATION ----
+        if is_command(text, DEEPER_COMMANDS):
+            last = session_state.get("last_answer")
+            expanded = deepen_answer(last)
             session_state["last_answer"] = expanded
             return expanded
 
-    for angle in ANGLE_COMMANDS:
-        if angle in text:
-            last_answer = session_state.get("last_answer")
-            if last_answer:
-                expanded = deepen_answer(last_answer, angle)
+        for angle in ANGLE_COMMANDS:
+            if angle in text:
+                last = session_state.get("last_answer")
+                expanded = deepen_answer(last, angle)
                 session_state["last_answer"] = expanded
                 return expanded
 
-    # -------------------------
-    # NORMAL ANSWER FLOW (ALWAYS BLEND FIRST)
-    # -------------------------
+        # ---- NORMAL FLOW ----
+        base = smart_answer(user_message)
+        blended = fashion_blend(base)
 
-    base = smart_answer(user_message)
-    blended = fashion_blend(base)
+        session_state["last_answer"] = blended
+        return blended
 
-    session_state["last_answer"] = blended
-
-    return blended
+    except Exception as e:
+        # 🚨 NEVER FREEZE AGAIN
+        return "I’m here — something tripped me up for a second. Try that again 🖤"
