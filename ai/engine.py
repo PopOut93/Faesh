@@ -1,196 +1,135 @@
 import random
 import datetime
 
-# -----------------------------------
-# GREETINGS (NO CREATOR LEAK)
-# -----------------------------------
-GREETINGS = [
-    "What’s good — ready to talk style? 🧥✨",
-    "Hey hey 👋 What’s the vibe today?",
-    "Fresh fits or creative thoughts — I’m here.",
-    "Style check 🔍 What are we working on today?",
-    "Big drip energy or chill mode today?",
-]
+# -------------------------
+# GREETING LOGIC
+# -------------------------
 
-# -----------------------------------
-# MODE TRIGGERS
-# -----------------------------------
-SENSEI_ON = ["sensei", "sensei mode"]
-SENSEI_OFF = ["toasted 3d"]
+def random_greeting():
+    now = datetime.datetime.now()
+    month = now.month
 
-DEEPEN_TRIGGERS = [
-    "deeper",
-    "go deeper",
-    "deeper answer",
-    "more detail",
-    "technical",
-    "cultural",
-]
+    holiday_greetings = []
 
-# -----------------------------------
-# CORE RESPONSE ENGINE
-# -----------------------------------
-def generate_response(messages, session_state):
-    """
-    Core Faesh brain.
-    """
+    if month == 12:
+        holiday_greetings.append("🎄 Hey! Fæsh here — holiday fits on your mind?")
+    if month == 10:
+        holiday_greetings.append("🎃 What’s good? Fæsh here — spooky season drip ready?")
+    if month == 2:
+        holiday_greetings.append("❤️ Hey there — need help styling something special?")
 
-    # Initialize session state safely
-    session_state.setdefault("mode", "fashion")
-    session_state.setdefault("greeted", False)
-    session_state.setdefault("last_question", None)
-    session_state.setdefault("last_answer", None)
+    general_greetings = [
+        "Hey! Fæsh here — what vibe are we on today?",
+        "What’s up 👋 Ready to talk style?",
+        "Yo — let’s get into some fashion ideas 🧥",
+        "Hey hey! Need outfit inspo or just vibing?",
+        "What’s good? Let’s build a look."
+    ]
 
-    user_input = messages[-1]["content"].strip()
-    lower_input = user_input.lower()
+    options = holiday_greetings + general_greetings
+    return random.choice(options)
 
-    # -----------------------------------
-    # GREETING (ONCE PER SESSION)
-    # -----------------------------------
-    if not session_state["greeted"]:
-        session_state["greeted"] = True
-        return random.choice(GREETINGS)
 
-    # -----------------------------------
-    # MODE SWITCHING
-    # -----------------------------------
-    if any(trigger in lower_input for trigger in SENSEI_ON):
+# -------------------------
+# MODE DETECTION
+# -------------------------
+
+def detect_mode(text, session_state):
+    text_lower = text.lower()
+
+    if "sensei" in text_lower:
         session_state["mode"] = "sensei"
         return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
 
-    if any(trigger in lower_input for trigger in SENSEI_OFF):
+    if "toasted 3d" in text_lower:
         session_state["mode"] = "fashion"
         return "🧥 Fashion mode restored. Back to style, drip, and creativity."
 
-    # -----------------------------------
-    # DEEPER CONTINUATION (CRITICAL FIX)
-    # -----------------------------------
-    if any(trigger in lower_input for trigger in DEEPEN_TRIGGERS):
-        if session_state["last_answer"] and session_state["last_question"]:
-            return (
-                f"Let’s go deeper.\n\n"
-                f"Earlier we talked about:\n"
-                f"**{session_state['last_question']}**\n\n"
-                f"{session_state['last_answer']}\n\n"
-                f"Here’s the next layer:\n"
-                f"{expand_answer(session_state['last_question'], session_state['last_answer'], session_state['mode'])}"
-            )
-        else:
-            return "Tell me what you want to go deeper on — I’ve got you."
-
-    # -----------------------------------
-    # NORMAL QUESTION HANDLING
-    # -----------------------------------
-    answer = answer_question(user_input, session_state["mode"])
-
-    # Save thread for continuation
-    session_state["last_question"] = user_input
-    session_state["last_answer"] = answer
-
-    return answer
+    return None
 
 
-# -----------------------------------
-# ANSWER GENERATION
-# -----------------------------------
-def answer_question(question, mode):
+# -------------------------
+# CORE RESPONSE ENGINE
+# -------------------------
+
+def generate_response(messages, session_state):
     """
-    Answer questions with blend-first logic.
+    Core Faesh brain.
+    - Always blends fashion unless Sensei mode is active
+    - Sensei mode only DEEPENS, never redirects
     """
 
-    q = question.lower()
+    if "mode" not in session_state:
+        session_state["mode"] = "fashion"
 
-    # Explicit creator disclosure ONLY if asked
-    if "who created you" in q or "who made you" in q:
+    # First interaction = greeting
+    if len(messages) == 1:
+        return random_greeting()
+
+    user_input = messages[-1]["content"]
+    mode_switch = detect_mode(user_input, session_state)
+
+    if mode_switch:
+        return mode_switch
+
+    # -------------------------
+    # SENSEI MODE
+    # -------------------------
+    if session_state["mode"] == "sensei":
         return (
-            "I was created by Patrick Wilkerson Sr — my creator and dad — "
-            "to be a fashion and creativity AI that helps people express themselves."
+            f"{answer_general_question(user_input)}\n\n"
+            "If you want more depth, just say **Deeper**.\n"
+            "Say **Toasted 3D** to return to fashion."
         )
 
-    # Sensei = full GodBot-level intelligence
-    if mode == "sensei":
-        return deep_answer(question)
-
-    # Fashion-first default
-    return fashion_blended_answer(question)
+    # -------------------------
+    # FASHION MODE (DEFAULT)
+    # -------------------------
+    return fashion_blended_answer(user_input)
 
 
-# -----------------------------------
-# BLENDED ANSWER (LOCKED PERSONALITY)
-# -----------------------------------
-def fashion_blended_answer(question):
-    """
-    This is the personality bleed you liked.
-    DO NOT REMOVE OR SIMPLIFY.
-    """
+# -------------------------
+# ANSWER HELPERS
+# -------------------------
 
-    return (
-        f"{deep_answer(question)}\n\n"
-        f"From a style lens, everything has structure, balance, and expression — "
-        f"just like fashion. Whether it’s ideas or outfits, it’s all about how "
-        f"you put the pieces together.\n\n"
-        f"Want help styling this into your look? 👔✨"
+def answer_general_question(text):
+    return f"{basic_answer(text)}"
+
+
+def fashion_blended_answer(text):
+    base = basic_answer(text)
+    fashion_twist = (
+        "\n\nFrom a style lens, everything has structure, balance, and expression — "
+        "just like fashion. Want help styling this idea into your look? 👔✨"
     )
+    return base + fashion_twist
 
 
-# -----------------------------------
-# DEEP ANSWER (SENSEI CORE)
-# -----------------------------------
-def deep_answer(question):
-    """
-    General intelligence — math, science, law, philosophy, etc.
-    """
+def basic_answer(text):
+    text_lower = text.lower()
 
-    q = question.lower()
-
-    if "law" in q:
+    if "law" in text_lower:
         return (
             "Law evolved over thousands of years across civilizations like "
-            "Mesopotamia, Egypt, Greece, and Rome to organize society, "
-            "define responsibility, and create fairness."
+            "Mesopotamia, Egypt, Greece, and Rome to organize society."
         )
 
-    if "math" in q:
+    if "math" in text_lower:
+        return "Math is the study of numbers, patterns, and logical relationships."
+
+    if "science" in text_lower:
+        return "Science is the systematic study of the natural world through evidence and experimentation."
+
+    if "dark matter" in text_lower:
         return (
-            "Math is the study of numbers, patterns, structures, and relationships. "
-            "It helps us describe reality, build systems, and understand change."
+            "Dark matter is a mysterious form of matter that doesn’t emit light "
+            "but has gravitational effects on galaxies and the universe."
         )
 
-    if "science" in q:
+    if "faesh" in text_lower:
         return (
-            "Science is the systematic study of the natural world through "
-            "observation, experimentation, and evidence."
+            "Fæsh is a fashion and creativity AI designed to help people express "
+            "their identity through style."
         )
 
-    if "god" in q:
-        return (
-            "Different cultures and philosophies define God in different ways — "
-            "as a creator, a higher power, a universal consciousness, or a moral ideal."
-        )
-
-    # Fallback intelligence
-    return (
-        "That’s a solid question. Let’s break it down thoughtfully and clearly, "
-        "layer by layer."
-    )
-
-
-# -----------------------------------
-# ANSWER EXPANSION (DEEPER MODE)
-# -----------------------------------
-def expand_answer(question, previous_answer, mode):
-    """
-    Expands the SAME answer thread — no redirects.
-    """
-
-    if mode == "sensei":
-        return (
-            f"Zooming in further, we can examine historical context, "
-            f"technical structure, and cultural impact — all of which "
-            f"add clarity and depth to the idea."
-        )
-
-    return (
-        "Looking closer, details matter — just like tailoring. "
-        "Small refinements shape the final outcome."
-    )
+    return "Got it. Tell me more — I’m listening."
