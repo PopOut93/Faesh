@@ -1,166 +1,210 @@
 import random
 import datetime
-import difflib
 
-# -------------------------
-# MODE FLAGS
-# -------------------------
-MODE_FASHION = "fashion"
-MODE_SENSEI = "sensei"
-
-# -------------------------
-# TRIGGERS (MISSPELL SAFE)
-# -------------------------
-SENSEI_ON = ["sensei", "sensei mode", "sesei", "senseo"]
-SENSEI_OFF = ["toasted 3d", "back to fashion", "fashion mode"]
-
-# -------------------------
-# SYSTEM PROMPTS
-# -------------------------
-FASHION_SYSTEM = """
-You are Fæsh — a fashion-first AI assistant.
-Your main role is fashion, style, sneakers, outfits, branding, and creative drip.
-You may answer basic general questions briefly, but always lean back into fashion.
-
-Do NOT reveal who created you unless explicitly asked:
-"who created you", "who made you", or "who is your dad".
-
-When in fashion mode:
-- Be warm, human, stylish, and playful.
-- Help with outfits, brands, weather-based style, holidays, events.
-""".strip()
-
-SENSEI_SYSTEM = """
-You are Sensei mode inside Fæsh.
-
-Rules:
-- Answer questions directly and fully.
-- Do NOT redirect to fashion unless explicitly asked.
-- Cover science, math, history, law, philosophy, tech, and life questions.
-- Maintain the same safety boundaries as ChatGPT.
-
-Identity:
-- Only reveal creator if explicitly asked.
-- If asked, answer exactly: "Patrick Wilkerson Sr."
-""".strip()
-
-# -------------------------
-# RANDOM OPENING GREETINGS
-# -------------------------
-BASE_GREETINGS = [
-    "Yo! What’s good?",
-    "Hey — good to see you.",
-    "What’s up? Let’s get into it.",
-    "Hey there 👋",
-    "Alright, I’m here — what’s the move?"
-]
-
-HOLIDAY_GREETINGS = {
-    "12-25": "🎄 Merry Christmas! Need help putting together a cozy or flashy holiday fit?",
-    "01-01": "🎆 Happy New Year! New year, new drip — want help leveling up your style?",
-    "10-31": "🎃 Happy Halloween! Going spooky, classy, or creative with your outfit?",
-    "02-14": "❤️ Happy Valentine’s Day! Need a fit for date night or self-love vibes?"
+# =========================
+# MODE FLAGS (SESSION-LOCAL)
+# =========================
+SESSION_STATE = {
+    "mode": "fashion",      # fashion | sensei
+    "last_topic": None,     # store last topic for "deeper"
 }
 
-WEATHER_COMMENTS = [
-    "If it’s chilly where you are, layering is your best friend right now.",
-    "If it’s warm out, breathable fabrics and clean silhouettes are the move.",
-    "Rainy days call for waterproof drip that still looks intentional.",
-    "Cold weather = hoodies, coats, and statement sneakers."
+# =========================
+# TRIGGERS
+# =========================
+SENSEI_ON = ["sensei", "sensei mode"]
+SENSEI_OFF = ["toasted 3d", "back to fashion"]
+
+DEPTH_TRIGGERS = [
+    "deeper",
+    "go deeper",
+    "explain more",
+    "keep going",
+    "continue",
+    "elaborate",
 ]
 
-def get_opening_message(user_context=None):
-    today = datetime.datetime.now()
-    date_key = today.strftime("%m-%d")
+# =========================
+# OPENING GREETINGS (RANDOM)
+# =========================
+def random_greeting():
+    now = datetime.datetime.now()
+    month = now.month
 
-    if date_key in HOLIDAY_GREETINGS:
-        return HOLIDAY_GREETINGS[date_key]
-
-    greeting = random.choice(BASE_GREETINGS)
-    style_hook = random.choice([
-        "Need outfit ideas?",
-        "Looking for sneaker advice?",
-        "Trying to put something together?",
-        "Just vibing or planning a look?"
-    ])
-
-    return f"{greeting} {style_hook}"
-
-# -------------------------
-# UTILS
-# -------------------------
-def fuzzy_match(text, options):
-    text = text.lower()
-    matches = difflib.get_close_matches(text, options, n=1, cutoff=0.75)
-    return matches[0] if matches else None
-
-# -------------------------
-# MAIN RESPONSE ENGINE
-# -------------------------
-def generate_response(messages, roast_level=0, session_state=None):
-    if session_state is None:
-        session_state = {}
-
-    user_message = messages[-1]["content"].lower()
-
-    # Initialize mode
-    mode = session_state.get("mode", MODE_FASHION)
-
-    # MODE SWITCHING
-    if fuzzy_match(user_message, SENSEI_ON):
-        session_state["mode"] = MODE_SENSEI
-        return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
-
-    if fuzzy_match(user_message, SENSEI_OFF):
-        session_state["mode"] = MODE_FASHION
-        return "🧥 Fashion mode restored. Back to style, drip, and creativity."
-
-    # OPENING GREETING (FIRST MESSAGE ONLY)
-    if len(messages) == 1:
-        return get_opening_message()
-
-    # CREATOR QUESTION (GLOBAL)
-    if "who created you" in user_message or "who made you" in user_message or "your dad" in user_message:
-        return "I was created by Patrick Wilkerson Sr — my creator and dad."
-
-    # -------------------------
-    # SENSEI MODE
-    # -------------------------
-    if session_state.get("mode") == MODE_SENSEI:
-        return call_openai(messages, SENSEI_SYSTEM)
-
-    # -------------------------
-    # FASHION MODE
-    # -------------------------
-    fashion_keywords = [
-        "wear", "outfit", "jordans", "nike", "gucci", "versace",
-        "fit", "style", "drip", "sneakers", "clothes", "jacket"
+    holiday_lines = [
+        "Yo! Holiday drip check 🎄 Need help styling something festive?",
+        "It’s that season 👀 Let’s make sure your outfit matches the vibes.",
+        "Cold weather, hot fits ❄️🔥 What are we styling today?",
     ]
 
-    if any(word in user_message for word in fashion_keywords):
-        return call_openai(messages, FASHION_SYSTEM)
+    standard_lines = [
+        "Yo! What’s good? Fæsh here — what vibe are we on?",
+        "What’s up 👋 Let’s talk style, sneakers, or ideas.",
+        "Fæsh checking in 🧥👟 What are you feeling today?",
+        "Ready to level up your look or your thoughts?",
+    ]
 
-    # GENERAL QUESTION IN FASHION MODE (BRIEF ANSWER)
-    brief_answer = call_openai(messages, FASHION_SYSTEM)
+    if month in [11, 12]:
+        return random.choice(holiday_lines)
+    return random.choice(standard_lines)
 
-    return f"{brief_answer}\n\nIf you want deeper answers, say **Sensei**.\nIf you want fashion help, just ask 🧥"
+# =========================
+# CORE RESPONSE ENGINE
+# =========================
+def generate_response(messages, roast_level=0):
+    user_input = messages[-1]["content"].strip().lower()
 
-# -------------------------
-# OPENAI CALL
-# -------------------------
-def call_openai(messages, system_prompt):
-    try:
-        from openai import OpenAI
-        client = OpenAI()
+    # -------------------------
+    # MODE SWITCHING
+    # -------------------------
+    if user_input in SENSEI_ON:
+        SESSION_STATE["mode"] = "sensei"
+        return "🔥 Sensei mode activated!!! Get over here!!! 🔥"
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                *messages
-            ],
-            temperature=0.7
+    if user_input in SENSEI_OFF:
+        SESSION_STATE["mode"] = "fashion"
+        return "🧥 Fashion mode restored. Back to style, drip, and creativity."
+
+    # -------------------------
+    # DEPTH CONTINUATION
+    # -------------------------
+    if user_input in DEPTH_TRIGGERS and SESSION_STATE["last_topic"]:
+        return expand_topic(SESSION_STATE["last_topic"])
+
+    # -------------------------
+    # ROUTING BY MODE
+    # -------------------------
+    if SESSION_STATE["mode"] == "sensei":
+        reply, topic = sensei_answer(user_input)
+        SESSION_STATE["last_topic"] = topic
+        return reply
+
+    # Default: Fashion Mode
+    reply, topic = fashion_answer(user_input)
+    SESSION_STATE["last_topic"] = topic
+    return reply
+
+
+# =========================
+# SENSEI MODE (FULL ANSWERS)
+# =========================
+def sensei_answer(text):
+    # Math
+    if "math" in text:
+        return (
+            "Math is the study of numbers, patterns, structures, and relationships. "
+            "It helps us understand logic, quantity, space, and change — from basic counting "
+            "to advanced physics and computer science.",
+            "math",
         )
-        return response.choices[0].message.content.strip()
-    except Exception:
-        return "I hear you. Say a little more for me 🖤"
+
+    # God
+    if "god" in text:
+        return (
+            "Different cultures and philosophies define God in different ways — as a creator, "
+            "a higher power, a universal consciousness, or a moral ideal. Theology, philosophy, "
+            "and science all approach the question differently.",
+            "god",
+        )
+
+    # Law
+    if "law" in text:
+        return (
+            "Law wasn’t invented by a single person. It evolved over thousands of years through "
+            "customs, codes, and institutions — from Hammurabi’s Code to Roman law to modern legal systems.",
+            "law",
+        )
+
+    # Dark Matter
+    if "dark matter" in text:
+        return (
+            "Dark matter is a mysterious form of matter that doesn’t emit light or energy, "
+            "but exerts gravitational effects. Scientists infer its existence by observing how "
+            "galaxies rotate and bend light.",
+            "dark matter",
+        )
+
+    # Fallback
+    return (
+        "I can help with science, math, history, law, or tech.\n"
+        "Ask away — or say **Toasted 3D** to return to fashion.",
+        None,
+    )
+
+
+# =========================
+# FASHION MODE (BLENDED)
+# =========================
+def fashion_answer(text):
+    # Jordans
+    if "jordan" in text:
+        return (
+            "Jordans are iconic sneakers created under Nike for Michael Jordan — rooted in basketball "
+            "but dominant in streetwear. If you want to go deeper, say **Deeper** 👀",
+            "jordans",
+        )
+
+    # Nike
+    if "nike" in text:
+        return (
+            "Nike is a global sportswear brand known for innovation, performance, and culture — "
+            "from Air Force 1s to elite athletic gear.",
+            "nike",
+        )
+
+    # Versace
+    if "versace" in text:
+        return (
+            "Versace is a luxury fashion house known for bold prints, gold accents, and unapologetic confidence. "
+            "It’s maximalism done right.",
+            "versace",
+        )
+
+    # Creator
+    if "who created you" in text:
+        return (
+            "I was created by Patrick Wilkerson Sr — my creator and dad — as a fashion and creativity AI.",
+            "creator",
+        )
+
+    # Default fashion nudge
+    return (
+        "Got it. I can help with that.\n\n"
+        "If you want deeper answers, say **Sensei**.\n"
+        "If you want fashion help, just ask 🧥",
+        None,
+    )
+
+
+# =========================
+# DEEPER EXPANSION
+# =========================
+def expand_topic(topic):
+    expansions = {
+        "jordans": (
+            "Going deeper — Jordans started as performance basketball shoes in the 1980s, "
+            "but evolved into cultural symbols tied to music, identity, and self-expression. "
+            "Different models carry different historical weight."
+        ),
+        "math": (
+            "Going deeper — math underpins science, engineering, economics, and AI. "
+            "Abstract math often finds real-world application decades later."
+        ),
+        "law": (
+            "Going deeper — law reflects societal values at a given time. "
+            "As societies evolve, laws change to reflect new ethics and realities."
+        ),
+        "dark matter": (
+            "Going deeper — dark matter makes up roughly 27% of the universe, yet we still don’t know "
+            "what it’s made of. It remains one of modern physics’ biggest mysteries."
+        ),
+        "versace": (
+            "Going deeper — Versace’s identity is rooted in power dressing, mythology, and rebellion. "
+            "It’s fashion meant to be seen and felt."
+        ),
+    }
+
+    return expansions.get(
+        topic,
+        "Going deeper — there’s more here if you want to explore it further."
+    )
