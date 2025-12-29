@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Fæsh</title>
   <link rel="icon" href="./favicon.ico" />
-
   <style>
     :root{
       --bg:#0b0b12;
@@ -115,11 +114,7 @@
       flex-direction:column;
       gap:10px;
     }
-    .row{
-      display:flex;
-      gap:10px;
-      align-items:flex-end;
-    }
+    .row{ display:flex; gap:10px; align-items:flex-end; }
     .row.you{justify-content:flex-end}
     .bubble{
       max-width:min(78%, 680px);
@@ -134,9 +129,7 @@
       background: rgba(124,92,255,.13);
       border-color: rgba(124,92,255,.35);
     }
-    .bubble.faesh{
-      background: rgba(255,255,255,.04);
-    }
+    .bubble.faesh{ background: rgba(255,255,255,.04); }
     .meta{
       font-size:11px;
       color:var(--muted);
@@ -194,6 +187,7 @@
 
         <button class="btn" id="imgBtn" title="Send an image">🖼️</button>
         <button class="btn" id="fileBtn" title="Send a file">📎</button>
+
         <button class="btn btnAccent" id="sendBtn">Send</button>
       </div>
     </header>
@@ -208,7 +202,7 @@
       </div>
 
       <div class="tiny">
-        Tip: Press <b>Enter</b> to send. Try <b>Sensei</b> for deep answers, <b>Toasted 3D</b> to return to fashion.
+        Tip: Press <b>Enter</b> to send. Say <b>Sensei</b> for unlimited brain. Say <b>Toasted 3D</b> to return.
       </div>
     </div>
   </div>
@@ -217,7 +211,7 @@
     const API_BASE = "https://faesh.onrender.com";
 
     let history = [];
-    let sessionState = {}; // IMPORTANT: persisted backend state
+    let session_state = {}; // persisted per user session in browser
 
     const chatEl = document.getElementById("chat");
     const inputEl = document.getElementById("input");
@@ -229,9 +223,9 @@
     const imgInput = document.getElementById("imgInput");
     const fileInput = document.getElementById("fileInput");
 
-    function scrollToBottom() { chatEl.scrollTop = chatEl.scrollHeight; }
+    function scrollToBottom(){ chatEl.scrollTop = chatEl.scrollHeight; }
 
-    function addMessage(who, text) {
+    function addMessage(who, text){
       const row = document.createElement("div");
       row.className = `row ${who === "you" ? "you" : "faesh"}`;
 
@@ -243,34 +237,22 @@
       bubble.className = `bubble ${who === "you" ? "you" : "faesh"}`;
       bubble.textContent = text;
 
-      if (who === "you") { row.appendChild(bubble); row.appendChild(meta); }
+      if (who === "you"){ row.appendChild(bubble); row.appendChild(meta); }
       else { row.appendChild(meta); row.appendChild(bubble); }
 
       chatEl.appendChild(row);
       scrollToBottom();
     }
 
-    function setRoastLabel() { roastValEl.textContent = String(roastEl.value); }
+    function setRoastLabel(){ roastValEl.textContent = String(roastEl.value); }
     setRoastLabel();
     roastEl.addEventListener("input", setRoastLabel);
 
-    async function getJSON(path, timeoutMs = 15000) {
+    async function postJSON(path, payload, timeoutMs = 15000){
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), timeoutMs);
-      try {
-        const res = await fetch(`${API_BASE}${path}`, { method: "GET", mode: "cors", signal: ctrl.signal });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.detail || `Backend error (${res.status})`);
-        return data;
-      } finally {
-        clearTimeout(t);
-      }
-    }
 
-    async function postJSON(path, payload, timeoutMs = 15000) {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), timeoutMs);
-      try {
+      try{
         const res = await fetch(`${API_BASE}${path}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -280,77 +262,88 @@
         });
 
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.detail || data?.message || `Backend error (${res.status})`);
+        if (!res.ok){
+          const msg = data?.detail || data?.message || `Backend error (${res.status})`;
+          throw new Error(msg);
+        }
         return data;
       } finally {
         clearTimeout(t);
       }
     }
 
-    async function sendMessage() {
-      const text = (inputEl.value || "").trim();
-      if (!text) return;
+    async function sendMessage(textOverride){
+      const text = (textOverride != null ? String(textOverride) : (inputEl.value || "")).trim();
+      if (!text && textOverride == null) return;
 
-      inputEl.value = "";
-      addMessage("you", text);
+      if (textOverride == null){
+        inputEl.value = "";
+        addMessage("you", text);
+        history.push({ role: "user", content: text });
+      }
 
-      history.push({ role: "user", content: text });
       history = history.slice(-20);
 
       const roast_level = Number(roastEl.value || 0);
 
-      try {
+      try{
         const payload = {
           message: text,
           messages: history,
-          roast_level: roast_level,
-          session_state: sessionState
+          roast_level,
+          session_state
         };
 
         const data = await postJSON("/chat", payload);
-
         const reply = (data && (data.reply || data.message)) ? (data.reply || data.message) : "…";
-        sessionState = (data && data.session_state) ? data.session_state : sessionState;
+        session_state = data.session_state || session_state;
 
         addMessage("faesh", reply);
 
         history.push({ role: "assistant", content: reply });
         history = history.slice(-20);
 
-      } catch (err) {
+      } catch (err){
         addMessage("faesh", `⚠️ Faesh froze — backend didn’t respond. ${err?.message ? "(" + err.message + ")" : ""}`);
       }
     }
 
+    // Enter-to-send
     inputEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      if (e.key === "Enter" && !e.shiftKey){
+        e.preventDefault();
+        sendMessage();
+      }
     });
+
     sendBtn.addEventListener("click", () => sendMessage());
 
+    // Upload placeholders
     imgBtn.addEventListener("click", () => imgInput.click());
     fileBtn.addEventListener("click", () => fileInput.click());
 
     imgInput.addEventListener("change", async () => {
       if (!imgInput.files || !imgInput.files[0]) return;
       addMessage("you", "🖼️ (image selected)");
-      addMessage("faesh", "Image received 🖼️ — fashion vision coming soon");
+      addMessage("faesh", "Image received 🖼️ — vision coming soon");
       imgInput.value = "";
     });
 
     fileInput.addEventListener("change", async () => {
       if (!fileInput.files || !fileInput.files[0]) return;
       addMessage("you", "📎 (file selected)");
-      addMessage("faesh", "File received 📎 — creative tools coming soon");
+      addMessage("faesh", "File received 📎 — file support coming soon");
       fileInput.value = "";
     });
 
-    // ✅ INITIAL GREETING (FROM BACKEND, RANDOM, NO NAME)
-    (async function boot() {
-      try {
-        const data = await getJSON("/greet");
-        addMessage("faesh", data?.reply || "Hey! Fæsh here — what vibe are we on today?");
-      } catch (e) {
-
+    // Initial greeting from backend (no hardcoded text)
+    (async function init(){
+      try{
+        const data = await postJSON("/chat", { messages: [], session_state: {} });
+        session_state = data.session_state || {};
+        addMessage("faesh", data.reply || "Sup 😎");
+      } catch {
+        addMessage("faesh", "Sup 😎");
       }
     })();
   </script>

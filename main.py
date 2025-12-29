@@ -1,12 +1,12 @@
 from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
-from ai.engine import generate_response, random_greeting
+from ai.engine import generate_response
 
 app = FastAPI()
 
 # -------------------------
-# CORS (LOCKED + CORRECT)
+# CORS (STABLE)
 # -------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -29,43 +29,28 @@ def health():
     return {"status": "Fæsh online 🖤"}
 
 # -------------------------
-# GREETING (FRONTEND CALLS THIS ON LOAD)
-# -------------------------
-@app.get("/greet")
-def greet():
-    # This greeting is PUBLIC. No creator name here.
-    return {"reply": random_greeting()}
-
-# -------------------------
 # CHAT ENDPOINT
 # -------------------------
 @app.post("/chat")
 async def chat(request: Request):
     body = await request.json()
 
+    # Accept flexible fields from frontend
     user_message = body.get("message") or body.get("text") or body.get("input")
+
     if isinstance(user_message, dict):
         user_message = user_message.get("content")
 
-    if not user_message or not str(user_message).strip():
-        return {"reply": "I hear you — say that again for me 🖤", "session_state": body.get("session_state", {})}
-
     messages = body.get("messages", [])
-    if not isinstance(messages, list):
-        messages = []
-
-    # Ensure last user message exists in history
-    messages.append({"role": "user", "content": str(user_message).strip()})
-
     session_state = body.get("session_state") or {}
-    if not isinstance(session_state, dict):
-        session_state = {}
+    roast_level = int(body.get("roast_level", body.get("roastLevel", 0)) or 0)
 
-    roast_level = body.get("roast_level", body.get("roastLevel", 0))
-    try:
-        roast_level = int(roast_level)
-    except Exception:
-        roast_level = 0
+    # If the page just loaded and we got no message, trigger greeting safely
+    if not user_message and not messages:
+        messages = [{"role": "user", "content": "__INIT__"}]
+    else:
+        if user_message:
+            messages.append({"role": "user", "content": str(user_message)})
 
     reply, session_state = generate_response(
         messages=messages,
