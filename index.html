@@ -31,7 +31,7 @@
       padding:18px;
     }
     .wrap{
-      width:min(820px, 100%);
+      width:min(920px, 100%);
       border:1px solid var(--line);
       background: linear-gradient(180deg, rgba(18,18,26,.95), rgba(12,12,18,.92));
       border-radius:18px;
@@ -43,7 +43,7 @@
       background: #12121a;
       border-bottom:1px solid var(--line);
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:12px;
     }
@@ -62,6 +62,7 @@
       font-size:12px;
       color:var(--muted);
       font-weight:600;
+      margin-top:2px;
     }
     .controls{
       display:flex;
@@ -69,6 +70,7 @@
       gap:10px;
       flex-wrap:wrap;
       justify-content:flex-end;
+      max-width: 560px;
     }
     .pill{
       display:flex;
@@ -82,8 +84,22 @@
       font-size:12px;
       font-weight:650;
       user-select:none;
+      white-space:nowrap;
     }
-    .pill input[type="range"]{ width:120px; }
+    .pill input[type="range"]{ width:110px; }
+
+    .select{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:700;
+      font-size:12px;
+      outline:none;
+      max-width: 320px;
+    }
+
     .btn{
       border:1px solid var(--line);
       background: rgba(255,255,255,.03);
@@ -103,7 +119,7 @@
     .main{
       display:flex;
       flex-direction:column;
-      height:min(72vh, 640px);
+      height:min(72vh, 680px);
       background: #0e0e15;
     }
     #chat{
@@ -117,7 +133,7 @@
     .row{ display:flex; gap:10px; align-items:flex-end; }
     .row.you{justify-content:flex-end}
     .bubble{
-      max-width:min(78%, 680px);
+      max-width:min(78%, 720px);
       border:1px solid var(--line);
       border-radius:16px;
       padding:10px 12px;
@@ -130,12 +146,32 @@
       border-color: rgba(124,92,255,.35);
     }
     .bubble.faesh{ background: rgba(255,255,255,.04); }
+
     .meta{
       font-size:11px;
       color:var(--muted);
       margin:0 6px;
       font-weight:650;
     }
+
+    .assistantTools{
+      display:flex;
+      gap:8px;
+      margin-left: 32px;
+      margin-top: -6px;
+    }
+    .toolBtn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--muted);
+      padding:6px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:12px;
+    }
+    .toolBtn:hover{ background: rgba(255,255,255,.06); color: var(--text); }
+
     .composer{
       padding:12px;
       border-top:1px solid var(--line);
@@ -164,6 +200,12 @@
       background:#0e0e15;
     }
     .hiddenInput{display:none;}
+    .splitLine{
+      width:100%;
+      height:1px;
+      background: var(--line);
+      opacity:.85;
+    }
   </style>
 </head>
 
@@ -185,9 +227,29 @@
           <span id="roastVal">0</span>
         </label>
 
+        <label class="pill" title="Toggle voice speaking for Fæsh replies">
+          <span>Voice</span>
+          <input id="voiceOn" type="checkbox" />
+        </label>
+
+        <select id="voiceSelect" class="select" title="Choose a voice">
+          <option value="">Loading voices…</option>
+        </select>
+
+        <label class="pill" title="Speech rate">
+          <span>Rate</span>
+          <input id="rate" type="range" min="0.7" max="1.3" step="0.05" value="1" />
+          <span id="rateVal">1.00</span>
+        </label>
+
+        <label class="pill" title="Speech pitch">
+          <span>Pitch</span>
+          <input id="pitch" type="range" min="0.7" max="1.3" step="0.05" value="1" />
+          <span id="pitchVal">1.00</span>
+        </label>
+
         <button class="btn" id="imgBtn" title="Send an image">🖼️</button>
         <button class="btn" id="fileBtn" title="Send a file">📎</button>
-
         <button class="btn btnAccent" id="sendBtn">Send</button>
       </div>
     </header>
@@ -208,11 +270,14 @@
   </div>
 
   <script>
+    // ====== CONFIG ======
     const API_BASE = "https://faesh.onrender.com";
 
+    // ====== STATE ======
     let history = [];
-    let session_state = {}; // persisted per user session in browser
+    let session_state = {};
 
+    // ====== DOM ======
     const chatEl = document.getElementById("chat");
     const inputEl = document.getElementById("input");
     const sendBtn = document.getElementById("sendBtn");
@@ -223,9 +288,31 @@
     const imgInput = document.getElementById("imgInput");
     const fileInput = document.getElementById("fileInput");
 
+    // Voice UI
+    const voiceOnEl = document.getElementById("voiceOn");
+    const voiceSelectEl = document.getElementById("voiceSelect");
+    const rateEl = document.getElementById("rate");
+    const pitchEl = document.getElementById("pitch");
+    const rateValEl = document.getElementById("rateVal");
+    const pitchValEl = document.getElementById("pitchVal");
+
+    // ====== LOCAL STORAGE (voice prefs) ======
+    const LS_KEY = "faesh_voice_prefs_v1";
+    function loadVoicePrefs(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch { return null; }
+    }
+    function saveVoicePrefs(prefs){
+      try{ localStorage.setItem(LS_KEY, JSON.stringify(prefs)); } catch {}
+    }
+
+    // ====== CHAT HELPERS ======
     function scrollToBottom(){ chatEl.scrollTop = chatEl.scrollHeight; }
 
-    function addMessage(who, text){
+    function addMessage(who, text, opts = {}){
       const row = document.createElement("div");
       row.className = `row ${who === "you" ? "you" : "faesh"}`;
 
@@ -241,12 +328,42 @@
       else { row.appendChild(meta); row.appendChild(bubble); }
 
       chatEl.appendChild(row);
+
+      // Add tools under assistant messages (Speak button)
+      if (who !== "you"){
+        const tools = document.createElement("div");
+        tools.className = "assistantTools";
+
+        const speakBtn = document.createElement("button");
+        speakBtn.className = "toolBtn";
+        speakBtn.textContent = "🔊 Speak";
+        speakBtn.addEventListener("click", () => speakText(text, true));
+
+        tools.appendChild(speakBtn);
+        chatEl.appendChild(tools);
+      }
+
       scrollToBottom();
+
+      // Optional auto-speak for assistant replies
+      if (who !== "you" && voiceOnEl.checked){
+        speakText(text, false);
+      }
     }
 
     function setRoastLabel(){ roastValEl.textContent = String(roastEl.value); }
     setRoastLabel();
     roastEl.addEventListener("input", setRoastLabel);
+
+    function setVoiceLabels(){
+      rateValEl.textContent = Number(rateEl.value).toFixed(2);
+      pitchValEl.textContent = Number(pitchEl.value).toFixed(2);
+    }
+    setVoiceLabels();
+    rateEl.addEventListener("input", () => { setVoiceLabels(); persistVoicePrefs(); });
+    pitchEl.addEventListener("input", () => { setVoiceLabels(); persistVoicePrefs(); });
+    voiceOnEl.addEventListener("change", () => persistVoicePrefs());
+    voiceSelectEl.addEventListener("change", () => persistVoicePrefs());
 
     async function postJSON(path, payload, timeoutMs = 15000){
       const ctrl = new AbortController();
@@ -283,7 +400,6 @@
       }
 
       history = history.slice(-20);
-
       const roast_level = Number(roastEl.value || 0);
 
       try{
@@ -315,7 +431,6 @@
         sendMessage();
       }
     });
-
     sendBtn.addEventListener("click", () => sendMessage());
 
     // Upload placeholders
@@ -336,7 +451,129 @@
       fileInput.value = "";
     });
 
-    // Initial greeting from backend (no hardcoded text)
+    // ====== VOICE ENGINE ======
+    function getVoicesSafe(){
+      try{
+        return window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+      } catch { return []; }
+    }
+
+    function populateVoices(selectedName){
+      const voices = getVoicesSafe();
+      voiceSelectEl.innerHTML = "";
+      if (!voices.length){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "No voices available (browser/device)";
+        voiceSelectEl.appendChild(opt);
+        return;
+      }
+
+      // Group-ish: prioritize English, but keep all
+      const sorted = [...voices].sort((a,b) => {
+        const aEn = (a.lang || "").toLowerCase().startsWith("en");
+        const bEn = (b.lang || "").toLowerCase().startsWith("en");
+        if (aEn && !bEn) return -1;
+        if (!aEn && bEn) return 1;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+
+      for (const v of sorted){
+        const opt = document.createElement("option");
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang || "?"})${v.default ? " ★" : ""}`;
+        if (selectedName && v.name === selectedName) opt.selected = true;
+        voiceSelectEl.appendChild(opt);
+      }
+    }
+
+    function currentVoice(){
+      const voices = getVoicesSafe();
+      const want = voiceSelectEl.value || "";
+      if (!want) return null;
+      return voices.find(v => v.name === want) || null;
+    }
+
+    function cleanSpeakText(text){
+      // keep it simple: remove excessive markdown markers
+      return String(text || "")
+        .replace(/\*\*/g, "")
+        .replace(/[#`_]/g, "")
+        .trim();
+    }
+
+    function stopSpeaking(){
+      try{
+        if (window.speechSynthesis){
+          window.speechSynthesis.cancel();
+        }
+      } catch {}
+    }
+
+    function speakText(text, force){
+      if (!window.speechSynthesis) return;
+      if (!force && !voiceOnEl.checked) return;
+
+      const msg = cleanSpeakText(text);
+      if (!msg) return;
+
+      stopSpeaking();
+
+      const u = new SpeechSynthesisUtterance(msg);
+      const v = currentVoice();
+      if (v) u.voice = v;
+
+      u.rate = Number(rateEl.value || 1);
+      u.pitch = Number(pitchEl.value || 1);
+
+      // If no voice chosen, set lang loosely to browser language
+      if (!u.voice && navigator.language) u.lang = navigator.language;
+
+      try{ window.speechSynthesis.speak(u); } catch {}
+    }
+
+    function persistVoicePrefs(){
+      const prefs = {
+        voiceOn: !!voiceOnEl.checked,
+        voiceName: voiceSelectEl.value || "",
+        rate: Number(rateEl.value || 1),
+        pitch: Number(pitchEl.value || 1),
+      };
+      saveVoicePrefs(prefs);
+    }
+
+    function applySavedVoicePrefs(){
+      const prefs = loadVoicePrefs();
+      if (!prefs) return;
+      voiceOnEl.checked = !!prefs.voiceOn;
+      if (typeof prefs.rate === "number") rateEl.value = String(prefs.rate);
+      if (typeof prefs.pitch === "number") pitchEl.value = String(prefs.pitch);
+      setVoiceLabels();
+      // voiceName applied after voices populate
+    }
+
+    // Voices sometimes load async; handle both patterns
+    function initVoices(){
+      const prefs = loadVoicePrefs() || {};
+      populateVoices(prefs.voiceName || "");
+      if (prefs.voiceName){
+        voiceSelectEl.value = prefs.voiceName;
+      }
+    }
+
+    if ("speechSynthesis" in window){
+      window.speechSynthesis.onvoiceschanged = () => initVoices();
+      // also call once
+      initVoices();
+    } else {
+      voiceSelectEl.innerHTML = `<option value="">Voice unsupported in this browser</option>`;
+    }
+
+    applySavedVoicePrefs();
+    // re-apply after voices load
+    setTimeout(() => initVoices(), 250);
+
+    // ====== INIT GREETING FROM BACKEND ======
     (async function init(){
       try{
         const data = await postJSON("/chat", { messages: [], session_state: {} });
