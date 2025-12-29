@@ -66,10 +66,26 @@ def _is_lens(text: str) -> str | None:
 
 
 # -------------------------
+# CHAT FILLER STRIPPING
+# -------------------------
+CHAT_FILLER = {
+    "sup", "yo", "hey", "hello", "hi", "lol", "lmao", "haha", "what's up", "wassup"
+}
+
+def _strip_filler(text: str) -> str:
+    t = _norm(text)
+    words = t.split()
+    while words and words[0] in CHAT_FILLER:
+        words.pop(0)
+    return " ".join(words).strip()
+
+
+# -------------------------
 # CORE KNOWLEDGE
 # -------------------------
 def _basic_answer(q: str) -> str:
-    t = _norm(q)
+    clean = _strip_filler(q)
+    t = clean if clean else _norm(q)
 
     if _contains_any(t, ["who created you", "who made you"]):
         return "I was created by Patrick Wilkerson Sr — my dad — as a fashion and creativity AI."
@@ -96,7 +112,7 @@ def _basic_answer(q: str) -> str:
     if "faesh" in t:
         return "Fæsh is a fashion-and-creativity AI built to help people express themselves."
 
-    return f"Let’s talk about {q.strip()}."
+    return f"Let’s talk about {t}."
 
 
 def _fashion_twist():
@@ -150,7 +166,7 @@ def generate_response(messages: list, session_state: dict, roast_level: int = 0)
 
     user_input = messages[-1]["content"] if messages else ""
 
-    # Greeting (first message only)
+    # Greeting (first user message only)
     if len(messages) == 1:
         return random_greeting(), session_state
 
@@ -165,10 +181,10 @@ def generate_response(messages: list, session_state: dict, roast_level: int = 0)
 
     base = _basic_answer(user_input)
 
-    session_state["thread_question"] = user_input
+    session_state["thread_question"] = _strip_filler(user_input)
     session_state["thread_answer"] = base
 
-    # Sensei = NO fashion forcing
+    # Sensei = NO forced fashion
     if session_state["mode"] == "sensei":
         return (
             f"{base}\n\nSay **Deeper**, **technical**, or **cultural** to go further.\n"
@@ -179,5 +195,5 @@ def generate_response(messages: list, session_state: dict, roast_level: int = 0)
     if _is_casual(user_input):
         return base, session_state
 
-    # Fashion-aware blend (only when appropriate)
+    # Fashion-aware blend
     return base + _fashion_twist(), session_state
