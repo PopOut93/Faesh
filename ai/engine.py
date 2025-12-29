@@ -96,7 +96,7 @@ def _basic_answer(q: str) -> str:
     if "faesh" in t:
         return "Fæsh is a fashion-and-creativity AI built to help people express themselves."
 
-    return "Got you. What are you thinking about?"
+    return f"Let’s talk about {q.strip()}."
 
 
 def _fashion_twist():
