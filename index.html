@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Fæsh</title>
 
-  <!-- If your favicon is in the ROOT of your GitHub Pages repo, this is correct -->
   <link rel="icon" href="./favicon.ico" />
 
   <style>
@@ -24,7 +23,7 @@
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       background: radial-gradient(1200px 600px at 50% -10%, #1a1a2c 0%, var(--bg) 55%);
       color:var(--text);
       min-height:100vh;
@@ -46,49 +45,39 @@
       background: #12121a;
       border-bottom:1px solid var(--line);
       display:flex;
-      align-items:center;
       justify-content:space-between;
-      gap:12px;
+      align-items:center;
     }
     .brand{
       display:flex;
       align-items:center;
       gap:10px;
       font-weight:800;
-      letter-spacing:.2px;
     }
     .dot{
-      width:10px;height:10px;border-radius:999px;background:var(--good);
+      width:10px;height:10px;border-radius:999px;background:#3ddc97;
       box-shadow:0 0 0 4px rgba(61,220,151,.12);
     }
     .sub{
       font-size:12px;
       color:var(--muted);
-      font-weight:600;
     }
     .controls{
       display:flex;
-      align-items:center;
       gap:10px;
+      align-items:center;
       flex-wrap:wrap;
-      justify-content:flex-end;
     }
     .pill{
       display:flex;
-      align-items:center;
       gap:8px;
       border:1px solid var(--line);
       background: rgba(255,255,255,.03);
       padding:8px 10px;
       border-radius:999px;
-      color:var(--muted);
       font-size:12px;
-      font-weight:650;
-      user-select:none;
     }
-    .pill input[type="range"]{
-      width:120px;
-    }
+    .pill input{width:120px;}
     .btn{
       border:1px solid var(--line);
       background: rgba(255,255,255,.03);
@@ -96,11 +85,7 @@
       padding:9px 12px;
       border-radius:12px;
       cursor:pointer;
-      font-weight:750;
-      transition:.12s transform ease, .12s background ease;
     }
-    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.06);}
-    .btn:active{transform: translateY(0px);}
     .btnAccent{
       border-color: rgba(124,92,255,.45);
       background: rgba(124,92,255,.12);
@@ -109,7 +94,7 @@
       display:flex;
       flex-direction:column;
       height:min(72vh, 640px);
-      background: #0e0e15;
+      background:#0e0e15;
     }
     #chat{
       padding:16px;
@@ -119,245 +104,116 @@
       flex-direction:column;
       gap:10px;
     }
-    .row{
-      display:flex;
-      gap:10px;
-      align-items:flex-end;
-    }
+    .row{display:flex;gap:10px;}
     .row.you{justify-content:flex-end}
     .bubble{
-      max-width:min(78%, 680px);
+      max-width:78%;
       border:1px solid var(--line);
       border-radius:16px;
       padding:10px 12px;
-      line-height:1.25;
       white-space:pre-wrap;
-      word-wrap:break-word;
     }
     .bubble.you{
       background: rgba(124,92,255,.13);
       border-color: rgba(124,92,255,.35);
     }
-    .bubble.faesh{
-      background: rgba(255,255,255,.04);
-    }
-    .meta{
-      font-size:11px;
-      color:var(--muted);
-      margin:0 6px;
-      font-weight:650;
-    }
+    .bubble.faesh{background: rgba(255,255,255,.04);}
+    .meta{font-size:11px;color:var(--muted);}
     .composer{
       padding:12px;
       border-top:1px solid var(--line);
-      background: #0f0f16;
+      background:#0f0f16;
       display:flex;
       gap:10px;
-      align-items:center;
     }
     #input{
       flex:1;
       border:1px solid var(--line);
       background: rgba(255,255,255,.03);
       color:var(--text);
-      padding:12px 12px;
+      padding:12px;
       border-radius:14px;
-      outline:none;
-      font-size:14px;
-      font-weight:650;
-    }
-    #input::placeholder{color:rgba(185,186,211,.65)}
-    .tiny{
-      font-size:12px;
-      color:var(--muted);
-      padding:10px 16px;
-      border-top:1px solid var(--line);
-      background:#0e0e15;
     }
     .hiddenInput{display:none;}
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <div class="brand">
-          <span class="dot"></span>
-          <span>Fæsh</span>
-        </div>
-        <div class="sub">Fashion + creativity sidekick</div>
-      </div>
-
-      <div class="controls">
-        <label class="pill" title="Only roasts if > 0 (safe)">
-          <span>Roast</span>
-          <input id="roast" type="range" min="0" max="5" value="0" />
-          <span id="roastVal">0</span>
-        </label>
-
-        <button class="btn" id="imgBtn" title="Send an image">🖼️</button>
-        <button class="btn" id="fileBtn" title="Send a file">📎</button>
-
-        <button class="btn btnAccent" id="sendBtn">Send</button>
-      </div>
-    </header>
-
-    <div class="main">
-      <div id="chat"></div>
-
-      <div class="composer">
-        <input id="input" placeholder="Say something…" autocomplete="off" />
-        <!-- hidden inputs for uploads -->
-        <input class="hiddenInput" id="imgInput" type="file" accept="image/*" />
-        <input class="hiddenInput" id="fileInput" type="file" />
-      </div>
-
-      <div class="tiny">
-        Tip: Press <b>Enter</b> to send. Private layer is locked behind your trigger phrase.
-      </div>
-    </div>
+<div class="wrap">
+<header>
+  <div>
+    <div class="brand"><span class="dot"></span><span>Fæsh</span></div>
+    <div class="sub">Fashion + creativity sidekick</div>
   </div>
+  <div class="controls">
+    <label class="pill">
+      Roast
+      <input id="roast" type="range" min="0" max="5" value="0" />
+      <span id="roastVal">0</span>
+    </label>
+    <button class="btn btnAccent" id="sendBtn">Send</button>
+  </div>
+</header>
 
-  <script>
-    // ====== CONFIG ======
-    const API_BASE = "https://faesh.onrender.com";
+<div class="main">
+  <div id="chat"></div>
+  <div class="composer">
+    <input id="input" placeholder="Say something…" />
+  </div>
+</div>
+</div>
 
-    // ====== STATE ======
-    let history = []; // [{role:'user'|'assistant', content:'...'}]
+<script>
+const API_BASE="https://faesh.onrender.com";
+let history=[];
+const chat=document.getElementById("chat");
+const input=document.getElementById("input");
+const sendBtn=document.getElementById("sendBtn");
+const roast=document.getElementById("roast");
+const roastVal=document.getElementById("roastVal");
 
-    // ====== DOM ======
-    const chatEl = document.getElementById("chat");
-    const inputEl = document.getElementById("input");
-    const sendBtn = document.getElementById("sendBtn");
-    const roastEl = document.getElementById("roast");
-    const roastValEl = document.getElementById("roastVal");
-    const imgBtn = document.getElementById("imgBtn");
-    const fileBtn = document.getElementById("fileBtn");
-    const imgInput = document.getElementById("imgInput");
-    const fileInput = document.getElementById("fileInput");
+roast.oninput=()=>roastVal.textContent=roast.value;
 
-    function scrollToBottom() {
-      chatEl.scrollTop = chatEl.scrollHeight;
-    }
+function addMessage(who,text){
+  const row=document.createElement("div");
+  row.className="row "+(who==="you"?"you":"faesh");
+  const meta=document.createElement("div");
+  meta.className="meta";
+  meta.textContent=who==="you"?"You":"Fæsh";
+  const bubble=document.createElement("div");
+  bubble.className="bubble "+(who==="you"?"you":"faesh");
+  bubble.textContent=text;
+  who==="you"?(row.append(bubble,meta)):(row.append(meta,bubble));
+  chat.appendChild(row);
+  chat.scrollTop=chat.scrollHeight;
+}
 
-    function addMessage(who, text) {
-      // who: 'you' or 'faesh'
-      const row = document.createElement("div");
-      row.className = `row ${who === "you" ? "you" : "faesh"}`;
+async function sendMessage(){
+  const text=input.value.trim();
+  if(!text) return;
+  input.value="";
+  addMessage("you",text);
+  history.push({role:"user",content:text});
+  history=history.slice(-20);
 
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.textContent = who === "you" ? "You" : "Fæsh";
-
-      const bubble = document.createElement("div");
-      bubble.className = `bubble ${who === "you" ? "you" : "faesh"}`;
-      bubble.textContent = text;
-
-      if (who === "you") {
-        row.appendChild(bubble);
-        row.appendChild(meta);
-      } else {
-        row.appendChild(meta);
-        row.appendChild(bubble);
-      }
-
-      chatEl.appendChild(row);
-      scrollToBottom();
-    }
-
-    function setRoastLabel() {
-      roastValEl.textContent = String(roastEl.value);
-    }
-    setRoastLabel();
-    roastEl.addEventListener("input", setRoastLabel);
-
-    async function postJSON(path, payload, timeoutMs = 15000) {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), timeoutMs);
-
-      try {
-        const res = await fetch(`${API_BASE}${path}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          mode: "cors",
-          signal: ctrl.signal
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          const msg = data?.detail || data?.message || `Backend error (${res.status})`;
-          throw new Error(msg);
-        }
-
-        return data;
-      } finally {
-        clearTimeout(t);
-      }
-    }
-
-    async function sendMessage() {
-      const text = (inputEl.value || "").trim();
-      if (!text) return;
-
-      inputEl.value = "";
-      addMessage("you", text);
-
-      // keep history small
-      history.push({ role: "user", content: text });
-      history = history.slice(-20);
-
-      const roast_level = Number(roastEl.value || 0);
-
-      try {
-        const payload = {
-          message: text,
-          messages: history,
-          roast_level: roast_level
-        };
-
-        const data = await postJSON("/chat", payload);
-        const reply = (data && (data.reply || data.message)) ? (data.reply || data.message) : "…";
-
-        addMessage("faesh", reply);
-
-        history.push({ role: "assistant", content: reply });
-        history = history.slice(-20);
-
-      } catch (err) {
-        addMessage("faesh", `⚠️ Faesh froze — backend didn’t respond. ${err?.message ? "(" + err.message + ")" : ""}`);
-      }
-    }
-
-    inputEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
+  try{
+    const res=await fetch(API_BASE+"/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({message:text,messages:history,roast_level:+roast.value})
     });
+    const data=await res.json();
+    addMessage("faesh",data.reply||"…");
+    history.push({role:"assistant",content:data.reply});
+  }catch(e){
+    addMessage("faesh","⚠️ Faesh froze — backend didn’t respond.");
+  }
+}
 
-    sendBtn.addEventListener("click", () => sendMessage());
-
-    imgBtn.addEventListener("click", () => imgInput.click());
-    fileBtn.addEventListener("click", () => fileInput.click());
-
-    imgInput.addEventListener("change", async () => {
-      if (!imgInput.files || !imgInput.files[0]) return;
-      addMessage("you", "🖼️ (image selected)");
-      addMessage("faesh", "Image received 🖼️ — vision coming soon");
-      imgInput.value = "";
-    });
-
-    fileInput.addEventListener("change", async () => {
-      if (!fileInput.files || !fileInput.files[0]) return;
-      addMessage("you", "📎 (file selected)");
-      addMessage("faesh", "File received 📎 — file support coming soon");
-      fileInput.value = "";
-    });
-
-    // ✅ Removed forced initial greeting here (backend controls greetings)
-  </script>
+input.addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();sendMessage();}
+});
+sendBtn.onclick=sendMessage;
+</script>
 </body>
 </html>
