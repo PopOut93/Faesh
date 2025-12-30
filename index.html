@@ -110,6 +110,8 @@ header{
   <div class="brand"><span class="dot"></span>Fæsh</div>
   <div class="controls">
     <button class="btn" id="micBtn">🎤</button>
+    <button class="btn">🖼️</button>
+    <button class="btn">📎</button>
     <button class="btn btnAccent" id="sendBtn">Send</button>
   </div>
 </header>
@@ -133,7 +135,7 @@ const sendBtn=document.getElementById("sendBtn");
 let history=[],session_state={};
 const synth=window.speechSynthesis;
 
-/* ---------- CHAT ---------- */
+/* CHAT */
 function add(who,text){
   const r=document.createElement("div");
   r.className="row "+who;
@@ -143,7 +145,6 @@ function add(who,text){
   r.appendChild(b);
   chat.appendChild(r);
   chat.scrollTop=chat.scrollHeight;
-
   if(who==="faesh") speak(text);
 }
 
@@ -160,19 +161,18 @@ async function send(text){
   add("faesh",d.reply);
 }
 
-/* ---------- VOICE OUT ---------- */
+/* VOICE OUT */
 function speak(text){
   if(!synth) return;
   synth.cancel();
   const u=new SpeechSynthesisUtterance(text);
-  u.rate=0.95;       // warm pacing
-  u.pitch=1.05;      // friendly tone
-  u.volume=1;
+  u.rate=0.95;
+  u.pitch=1.05;
   u.lang="en-US";
   synth.speak(u);
 }
 
-/* ---------- SPEECH IN ---------- */
+/* VOICE IN */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 let recog,listening=false;
 
@@ -205,7 +205,7 @@ input.addEventListener("keydown",e=>{
   if(e.key==="Enter"){e.preventDefault();sendBtn.click();}
 });
 
-/* ---------- INIT ---------- */
+/* INIT */
 (async()=>{
   const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
   const d=await r.json();
