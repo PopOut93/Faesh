@@ -1,217 +1,600 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Fæsh</title>
-<link rel="icon" href="./favicon.ico" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fæsh</title>
+  <link rel="icon" href="./favicon.ico" />
+  <style>
+    :root{
+      --bg:#0b0b12;
+      --panel:#12121a;
+      --panel2:#0f0f16;
+      --line:#1f1f2e;
+      --text:#ececf7;
+      --muted:#b9bad3;
+      --accent:#7c5cff;
+      --good:#3ddc97;
+      --warn:#ffcc66;
+      --bad:#ff5c7a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 50% -10%, #1a1a2c 0%, var(--bg) 55%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .wrap{
+      width:min(920px, 100%);
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(18,18,26,.95), rgba(12,12,18,.92));
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    }
+    header{
+      padding:12px 16px;
+      background: #12121a;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;background:var(--good);
+      box-shadow:0 0 0 4px rgba(61,220,151,.12);
+    }
+    .sub{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:600;
+      margin-top:2px;
+    }
+    .controls{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      max-width: 660px;
+    }
+    .pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      padding:8px 10px;
+      border-radius:999px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:650;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .pill input[type="range"]{ width:110px; }
+    .select{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:700;
+      font-size:12px;
+      outline:none;
+      max-width: 320px;
+    }
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:9px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:750;
+      transition:.12s transform ease, .12s background ease;
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.06);}
+    .btn:active{transform: translateY(0px);}
+    .btnAccent{
+      border-color: rgba(124,92,255,.45);
+      background: rgba(124,92,255,.12);
+    }
+    .micActive{
+      background: rgba(61,220,151,.18)!important;
+      border-color: rgba(61,220,151,.55)!important;
+    }
+    .main{
+      display:flex;
+      flex-direction:column;
+      height:min(72vh, 680px);
+      background: #0e0e15;
+    }
+    #chat{
+      padding:16px;
+      overflow:auto;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .row{ display:flex; gap:10px; align-items:flex-end; }
+    .row.you{justify-content:flex-end}
+    .bubble{
+      max-width:min(78%, 720px);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px 12px;
+      line-height:1.25;
+      white-space:pre-wrap;
+      word-wrap:break-word;
+    }
+    .bubble.you{
+      background: rgba(124,92,255,.13);
+      border-color: rgba(124,92,255,.35);
+    }
+    .bubble.faesh{ background: rgba(255,255,255,.04); }
+    .meta{
+      font-size:11px;
+      color:var(--muted);
+      margin:0 6px;
+      font-weight:650;
+    }
+    .assistantTools{
+      display:flex;
+      gap:8px;
+      margin-left: 32px;
+      margin-top: -6px;
+    }
+    .toolBtn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--muted);
+      padding:6px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:12px;
+    }
+    .toolBtn:hover{ background: rgba(255,255,255,.06); color: var(--text); }
 
-<style>
-:root{
-  --bg:#0b0b12;
-  --panel:#12121a;
-  --line:#1f1f2e;
-  --text:#ececf7;
-  --muted:#b9bad3;
-  --accent:#7c5cff;
-  --good:#3ddc97;
-}
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;
-  background:radial-gradient(1200px 600px at 50% -10%,#1a1a2c,var(--bg));
-  color:var(--text);
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:18px;
-}
-.wrap{
-  width:min(920px,100%);
-  border:1px solid var(--line);
-  background:linear-gradient(180deg,#12121a,#0f0f16);
-  border-radius:18px;
-  overflow:hidden;
-  box-shadow:0 20px 60px rgba(0,0,0,.45);
-}
-header{
-  padding:12px 16px;
-  background:#12121a;
-  border-bottom:1px solid var(--line);
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.brand{display:flex;gap:10px;font-weight:800}
-.dot{
-  width:10px;height:10px;border-radius:999px;
-  background:var(--good);
-  box-shadow:0 0 0 4px rgba(61,220,151,.15);
-}
-.controls{display:flex;gap:8px;align-items:center}
-.btn{
-  border:1px solid var(--line);
-  background:rgba(255,255,255,.04);
-  color:var(--text);
-  padding:8px 12px;
-  border-radius:12px;
-  cursor:pointer;
-  font-weight:700;
-}
-.btnAccent{
-  border-color:rgba(124,92,255,.5);
-  background:rgba(124,92,255,.15);
-}
-.micActive{
-  background:rgba(61,220,151,.25)!important;
-  border-color:var(--good)!important;
-}
-.main{display:flex;flex-direction:column;height:70vh;background:#0e0e15}
-#chat{flex:1;padding:16px;overflow:auto;display:flex;flex-direction:column;gap:10px}
-.row{display:flex}
-.row.you{justify-content:flex-end}
-.bubble{
-  max-width:75%;
-  padding:10px 12px;
-  border-radius:16px;
-  border:1px solid var(--line);
-  white-space:pre-wrap;
-}
-.you .bubble{background:rgba(124,92,255,.15)}
-.faesh .bubble{background:rgba(255,255,255,.04)}
-.composer{
-  padding:12px;
-  border-top:1px solid var(--line);
-  display:flex;
-  gap:8px;
-}
-#input{
-  flex:1;
-  padding:12px;
-  border-radius:14px;
-  border:1px solid var(--line);
-  background:rgba(255,255,255,.03);
-  color:var(--text);
-}
-.tiny{
-  padding:8px 16px;
-  font-size:12px;
-  color:var(--muted);
-  border-top:1px solid var(--line);
-}
-</style>
+    .composer{
+      padding:12px;
+      border-top:1px solid var(--line);
+      background: #0f0f16;
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    #input{
+      flex:1;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:12px 12px;
+      border-radius:14px;
+      outline:none;
+      font-size:14px;
+      font-weight:650;
+    }
+    #input::placeholder{color:rgba(185,186,211,.65)}
+    .tiny{
+      font-size:12px;
+      color:var(--muted);
+      padding:10px 16px;
+      border-top:1px solid var(--line);
+      background:#0e0e15;
+    }
+    .hiddenInput{display:none;}
+  </style>
 </head>
 
 <body>
-<div class="wrap">
-<header>
-  <div class="brand"><span class="dot"></span>Fæsh</div>
-  <div class="controls">
-    <button class="btn" id="micBtn">🎤</button>
-    <button class="btn">🖼️</button>
-    <button class="btn">📎</button>
-    <button class="btn btnAccent" id="sendBtn">Send</button>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="brand">
+          <span class="dot"></span>
+          <span>Fæsh</span>
+        </div>
+        <div class="sub">Fashion + creativity sidekick</div>
+      </div>
+
+      <div class="controls">
+        <label class="pill" title="Only roasts if > 0 (safe)">
+          <span>Roast</span>
+          <input id="roast" type="range" min="0" max="5" value="0" />
+          <span id="roastVal">0</span>
+        </label>
+
+        <button class="btn" id="micBtn" title="Voice dictation">🎤</button>
+
+        <label class="pill" title="Toggle Fæsh speaking back">
+          <span>🔊</span>
+          <input id="voiceOn" type="checkbox" checked />
+        </label>
+
+        <select id="voiceSelect" class="select" title="Choose a voice">
+          <option value="">Loading voices…</option>
+        </select>
+
+        <label class="pill" title="Speech rate">
+          <span>Rate</span>
+          <input id="rate" type="range" min="0.8" max="1.2" step="0.05" value="0.95" />
+          <span id="rateVal">0.95</span>
+        </label>
+
+        <label class="pill" title="Speech pitch">
+          <span>Pitch</span>
+          <input id="pitch" type="range" min="0.85" max="1.25" step="0.05" value="1.10" />
+          <span id="pitchVal">1.10</span>
+        </label>
+
+        <button class="btn" id="imgBtn" title="Send an image">🖼️</button>
+        <button class="btn" id="fileBtn" title="Send a file">📎</button>
+        <button class="btn btnAccent" id="sendBtn">Send</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <div id="chat"></div>
+
+      <div class="composer">
+        <input id="input" placeholder="Say something…" autocomplete="off" />
+        <input class="hiddenInput" id="imgInput" type="file" accept="image/*" />
+        <input class="hiddenInput" id="fileInput" type="file" />
+      </div>
+
+      <div class="tiny">
+        🎤 Dictate • 🔊 Fæsh speaks back (bold & stylish) • Enter to send • Sensei / Toasted 3D supported
+      </div>
+    </div>
   </div>
-</header>
 
-<div class="main">
-  <div id="chat"></div>
-  <div class="composer">
-    <input id="input" placeholder="Say something…" />
-  </div>
-  <div class="tiny">🎙️ Click mic to speak • Faesh speaks back • Warm & friendly voice</div>
-</div>
-</div>
+  <script>
+    // ====== CONFIG ======
+    const API_BASE = "https://faesh.onrender.com";
 
-<script>
-const API="https://faesh.onrender.com/chat";
-const chat=document.getElementById("chat");
-const input=document.getElementById("input");
-const micBtn=document.getElementById("micBtn");
-const sendBtn=document.getElementById("sendBtn");
+    // ====== STATE ======
+    let history = [];
+    let session_state = {};
 
-let history=[],session_state={};
-const synth=window.speechSynthesis;
+    // ====== DOM ======
+    const chatEl = document.getElementById("chat");
+    const inputEl = document.getElementById("input");
+    const sendBtn = document.getElementById("sendBtn");
+    const micBtn = document.getElementById("micBtn");
 
-/* CHAT */
-function add(who,text){
-  const r=document.createElement("div");
-  r.className="row "+who;
-  const b=document.createElement("div");
-  b.className="bubble";
-  b.textContent=text;
-  r.appendChild(b);
-  chat.appendChild(r);
-  chat.scrollTop=chat.scrollHeight;
-  if(who==="faesh") speak(text);
-}
+    const roastEl = document.getElementById("roast");
+    const roastValEl = document.getElementById("roastVal");
 
-async function send(text){
-  add("you",text);
-  input.value="";
-  const res=await fetch(API,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({message:text,messages:history,session_state})
-  });
-  const d=await res.json();
-  session_state=d.session_state||{};
-  add("faesh",d.reply);
-}
+    const imgBtn = document.getElementById("imgBtn");
+    const fileBtn = document.getElementById("fileBtn");
+    const imgInput = document.getElementById("imgInput");
+    const fileInput = document.getElementById("fileInput");
 
-/* VOICE OUT */
-function speak(text){
-  if(!synth) return;
-  synth.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.rate=0.95;
-  u.pitch=1.05;
-  u.lang="en-US";
-  synth.speak(u);
-}
+    // Voice out (speech synthesis)
+    const voiceOnEl = document.getElementById("voiceOn");
+    const voiceSelectEl = document.getElementById("voiceSelect");
+    const rateEl = document.getElementById("rate");
+    const pitchEl = document.getElementById("pitch");
+    const rateValEl = document.getElementById("rateVal");
+    const pitchValEl = document.getElementById("pitchVal");
 
-/* VOICE IN */
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let recog,listening=false;
+    function scrollToBottom(){ chatEl.scrollTop = chatEl.scrollHeight; }
 
-if(SR){
-  recog=new SR();
-  recog.lang="en-US";
-  recog.onresult=e=>{
-    const t=e.results[0][0].transcript;
-    input.value=t;
-    send(t);
-  };
-  recog.onend=()=>{listening=false;micBtn.classList.remove("micActive");};
-}
+    function addMessage(who, text){
+      const row = document.createElement("div");
+      row.className = `row ${who === "you" ? "you" : "faesh"}`;
 
-micBtn.onclick=()=>{
-  if(!recog) return alert("Speech recognition not supported");
-  if(!listening){
-    listening=true;
-    micBtn.classList.add("micActive");
-    recog.start();
-  }else recog.stop();
-};
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = who === "you" ? "You" : "Fæsh";
 
-sendBtn.onclick=()=>{
-  const t=input.value.trim();
-  if(t) send(t);
-};
+      const bubble = document.createElement("div");
+      bubble.className = `bubble ${who === "you" ? "you" : "faesh"}`;
+      bubble.textContent = text;
 
-input.addEventListener("keydown",e=>{
-  if(e.key==="Enter"){e.preventDefault();sendBtn.click();}
-});
+      if (who === "you"){ row.appendChild(bubble); row.appendChild(meta); }
+      else { row.appendChild(meta); row.appendChild(bubble); }
 
-/* INIT */
-(async()=>{
-  const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
-  const d=await r.json();
-  session_state=d.session_state||{};
-  add("faesh",d.reply||"Hey 😊 I’m here.");
-})();
-</script>
+      chatEl.appendChild(row);
+
+      // Tools under assistant messages
+      if (who !== "you"){
+        const tools = document.createElement("div");
+        tools.className = "assistantTools";
+
+        const speakBtn = document.createElement("button");
+        speakBtn.className = "toolBtn";
+        speakBtn.textContent = "🔊 Speak";
+        speakBtn.addEventListener("click", () => speakText(text, true));
+
+        tools.appendChild(speakBtn);
+        chatEl.appendChild(tools);
+
+        // Auto-speak
+        speakText(text, false);
+      }
+
+      scrollToBottom();
+    }
+
+    function setRoastLabel(){ roastValEl.textContent = String(roastEl.value); }
+    setRoastLabel();
+    roastEl.addEventListener("input", setRoastLabel);
+
+    function setVoiceLabels(){
+      rateValEl.textContent = Number(rateEl.value).toFixed(2);
+      pitchValEl.textContent = Number(pitchEl.value).toFixed(2);
+    }
+    setVoiceLabels();
+    rateEl.addEventListener("input", setVoiceLabels);
+    pitchEl.addEventListener("input", setVoiceLabels);
+
+    async function postJSON(path, payload, timeoutMs = 20000){
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+
+      try{
+        const res = await fetch(`${API_BASE}${path}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          mode: "cors",
+          signal: ctrl.signal
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          const msg = data?.detail || data?.message || `Backend error (${res.status})`;
+          throw new Error(msg);
+        }
+        return data;
+      } finally {
+        clearTimeout(t);
+      }
+    }
+
+    async function sendMessage(textOverride){
+      const text = (textOverride != null ? String(textOverride) : (inputEl.value || "")).trim();
+      if (!text) return;
+
+      // UI
+      if (textOverride == null){
+        inputEl.value = "";
+        addMessage("you", text);
+      } else {
+        addMessage("you", text);
+      }
+
+      // Update history
+      history.push({ role: "user", content: text });
+      history = history.slice(-20);
+
+      const roast_level = Number(roastEl.value || 0);
+
+      try{
+        const payload = { message: text, messages: history, roast_level, session_state };
+        const data = await postJSON("/chat", payload);
+
+        const reply = (data && (data.reply || data.message)) ? (data.reply || data.message) : "…";
+        session_state = data.session_state || session_state;
+
+        addMessage("faesh", reply);
+
+        history.push({ role: "assistant", content: reply });
+        history = history.slice(-20);
+
+      } catch (err){
+        addMessage("faesh", `⚠️ Faesh froze — backend didn’t respond. ${err?.message ? "(" + err.message + ")" : ""}`);
+      }
+    }
+
+    // Enter-to-send
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey){
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    sendBtn.addEventListener("click", () => sendMessage());
+
+    // Upload placeholders (stubs)
+    imgBtn.addEventListener("click", () => imgInput.click());
+    fileBtn.addEventListener("click", () => fileInput.click());
+
+    imgInput.addEventListener("change", async () => {
+      if (!imgInput.files || !imgInput.files[0]) return;
+      addMessage("you", "🖼️ (image selected)");
+      addMessage("faesh", "Image received 🖼️ — vision coming soon");
+      imgInput.value = "";
+    });
+
+    fileInput.addEventListener("change", async () => {
+      if (!fileInput.files || !fileInput.files[0]) return;
+      addMessage("you", "📎 (file selected)");
+      addMessage("faesh", "File received 📎 — file support coming soon");
+      fileInput.value = "";
+    });
+
+    // ====== VOICE OUT (Speech Synthesis) ======
+    function getVoicesSafe(){
+      try{
+        return window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+      } catch { return []; }
+    }
+
+    // Bold & stylish heuristic (NOT any specific character voice)
+    function scoreVoice(v){
+      const name = (v.name || "").toLowerCase();
+      const lang = (v.lang || "").toLowerCase();
+      let s = 0;
+
+      if (lang.startsWith("en")) s += 20;
+      if (lang.includes("gb")) s += 6; // editorial / runway vibe
+      if (lang.includes("us")) s += 3;
+      if (v.default) s += 2;
+
+      const hits = [
+        "samantha","victoria","moira","tessa","zoe","ava","serena","nora","luna","fiona",
+        "google uk english","google us english",
+        "microsoft aria","microsoft jenny","microsoft natasha"
+      ];
+      for (const h of hits){
+        if (name.includes(h)) s += 5;
+      }
+      return s;
+    }
+
+    function populateVoices(selectedName){
+      const voices = getVoicesSafe();
+      voiceSelectEl.innerHTML = "";
+
+      if (!voices.length){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "No voices available (browser/device)";
+        voiceSelectEl.appendChild(opt);
+        return;
+      }
+
+      const sorted = [...voices].sort((a,b) => scoreVoice(b) - scoreVoice(a) || (a.name||"").localeCompare(b.name||""));
+      const best = sorted[0];
+      const initial = selectedName || (voiceSelectEl.value || "") || (best ? best.name : "");
+
+      for (const v of sorted){
+        const opt = document.createElement("option");
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang || "?"})${v.default ? " "★" : ""}`;
+        if (initial && v.name === initial) opt.selected = true;
+        voiceSelectEl.appendChild(opt);
+      }
+    }
+
+    function currentVoice(){
+      const voices = getVoicesSafe();
+      const want = voiceSelectEl.value || "";
+      return voices.find(v => v.name === want) || null;
+    }
+
+    function cleanSpeakText(text){
+      return String(text || "")
+        .replace(/\*\*/g, "")
+        .replace(/[#`_]/g, "")
+        .trim();
+    }
+
+    function stopSpeaking(){
+      try{ window.speechSynthesis && window.speechSynthesis.cancel(); } catch {}
+    }
+
+    function speakText(text, force){
+      if (!("speechSynthesis" in window)) return;
+      if (!force && !voiceOnEl.checked) return;
+
+      const msg = cleanSpeakText(text);
+      if (!msg) return;
+
+      stopSpeaking();
+
+      const u = new SpeechSynthesisUtterance(msg);
+      const v = currentVoice();
+      if (v) u.voice = v;
+
+      // Bold & stylish personality knobs
+      u.rate = Number(rateEl.value || 0.95);
+      u.pitch = Number(pitchEl.value || 1.10);
+      u.volume = 1;
+
+      if (!u.voice && navigator.language) u.lang = navigator.language;
+
+      try{ window.speechSynthesis.speak(u); } catch {}
+    }
+
+    function initVoices(){
+      populateVoices("");
+    }
+
+    if ("speechSynthesis" in window){
+      window.speechSynthesis.onvoiceschanged = () => initVoices();
+      initVoices();
+      setTimeout(initVoices, 250);
+    } else {
+      voiceSelectEl.innerHTML = `<option value="">Voice unsupported in this browser</option>`;
+      voiceOnEl.checked = false;
+      voiceOnEl.disabled = true;
+    }
+
+    // ====== VOICE IN (Speech Recognition) ======
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recog = null;
+    let listening = false;
+
+    if (SpeechRecognition){
+      recog = new SpeechRecognition();
+      recog.lang = "en-US";
+      recog.interimResults = false;
+
+      recog.onresult = (e) => {
+        const transcript = (e.results && e.results[0] && e.results[0][0]) ? e.results[0][0].transcript : "";
+        const t = String(transcript || "").trim();
+        if (!t) return;
+        inputEl.value = t;
+        // Auto-send after dictation
+        sendMessage(t);
+      };
+
+      recog.onend = () => {
+        listening = false;
+        micBtn.classList.remove("micActive");
+      };
+
+      recog.onerror = () => {
+        listening = false;
+        micBtn.classList.remove("micActive");
+      };
+    }
+
+    micBtn.addEventListener("click", () => {
+      if (!recog){
+        alert("Speech recognition not supported in this browser/device.");
+        return;
+      }
+      if (!listening){
+        listening = true;
+        micBtn.classList.add("micActive");
+        try{ recog.start(); } catch { listening = false; micBtn.classList.remove("micActive"); }
+      } else {
+        try{ recog.stop(); } catch {}
+      }
+    });
+
+    // ====== INIT GREETING FROM BACKEND ======
+    (async function init(){
+      try{
+        const data = await postJSON("/chat", { messages: [], session_state: {} });
+        session_state = data.session_state || {};
+        addMessage("faesh", data.reply || "Hey. Runway-ready. What’s the move? ✨");
+      } catch {
+        addMessage("faesh", "Hey. Runway-ready. What’s the move? ✨");
+      }
+    })();
+  </script>
 </body>
 </html>
