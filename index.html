@@ -20,45 +20,40 @@
 body{
   margin:0;
   font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;
-  background:radial-gradient(1200px 600px at 50% -10%, #1a1a2c 0%, var(--bg) 55%);
+  background:radial-gradient(1200px 600px at 50% -10%,#1a1a2c,var(--bg));
   color:var(--text);
   min-height:100vh;
   display:flex;
   align-items:center;
   justify-content:center;
+  padding:18px;
 }
 .wrap{
   width:min(920px,100%);
   border:1px solid var(--line);
-  background:var(--panel);
+  background:linear-gradient(180deg,#12121a,#0f0f16);
   border-radius:18px;
   overflow:hidden;
   box-shadow:0 20px 60px rgba(0,0,0,.45);
 }
 header{
   padding:12px 16px;
+  background:#12121a;
   border-bottom:1px solid var(--line);
   display:flex;
   justify-content:space-between;
   align-items:center;
 }
-.brand{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  font-weight:800;
-}
+.brand{display:flex;gap:10px;font-weight:800}
 .dot{
-  width:10px;height:10px;border-radius:999px;background:var(--good);
+  width:10px;height:10px;border-radius:999px;
+  background:var(--good);
+  box-shadow:0 0 0 4px rgba(61,220,151,.15);
 }
-.controls{
-  display:flex;
-  gap:8px;
-  align-items:center;
-}
+.controls{display:flex;gap:8px;align-items:center}
 .btn{
   border:1px solid var(--line);
-  background:rgba(255,255,255,.03);
+  background:rgba(255,255,255,.04);
   color:var(--text);
   padding:8px 12px;
   border-radius:12px;
@@ -66,27 +61,16 @@ header{
   font-weight:700;
 }
 .btnAccent{
-  border-color:rgba(124,92,255,.45);
+  border-color:rgba(124,92,255,.5);
   background:rgba(124,92,255,.15);
 }
-.btn.micActive{
-  background:rgba(61,220,151,.25);
-  border-color:var(--good);
+.micActive{
+  background:rgba(61,220,151,.25)!important;
+  border-color:var(--good)!important;
 }
-.main{
-  display:flex;
-  flex-direction:column;
-  height:70vh;
-}
-#chat{
-  flex:1;
-  padding:16px;
-  overflow:auto;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-.row{display:flex;gap:10px}
+.main{display:flex;flex-direction:column;height:70vh;background:#0e0e15}
+#chat{flex:1;padding:16px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.row{display:flex}
 .row.you{justify-content:flex-end}
 .bubble{
   max-width:75%;
@@ -95,23 +79,13 @@ header{
   border:1px solid var(--line);
   white-space:pre-wrap;
 }
-.bubble.you{background:rgba(124,92,255,.15)}
-.bubble.faesh{background:rgba(255,255,255,.05)}
-.tools{
-  margin-left:36px;
-}
-.toolBtn{
-  font-size:12px;
-  background:none;
-  border:none;
-  color:var(--muted);
-  cursor:pointer;
-}
+.you .bubble{background:rgba(124,92,255,.15)}
+.faesh .bubble{background:rgba(255,255,255,.04)}
 .composer{
-  display:flex;
-  gap:8px;
   padding:12px;
   border-top:1px solid var(--line);
+  display:flex;
+  gap:8px;
 }
 #input{
   flex:1;
@@ -121,6 +95,12 @@ header{
   background:rgba(255,255,255,.03);
   color:var(--text);
 }
+.tiny{
+  padding:8px 16px;
+  font-size:12px;
+  color:var(--muted);
+  border-top:1px solid var(--line);
+}
 </style>
 </head>
 
@@ -129,9 +109,6 @@ header{
 <header>
   <div class="brand"><span class="dot"></span>Fæsh</div>
   <div class="controls">
-    <label style="font-size:12px;color:var(--muted)">
-      Voice <input id="voiceToggle" type="checkbox">
-    </label>
     <button class="btn" id="micBtn">🎤</button>
     <button class="btn btnAccent" id="sendBtn">Send</button>
   </div>
@@ -142,69 +119,76 @@ header{
   <div class="composer">
     <input id="input" placeholder="Say something…" />
   </div>
+  <div class="tiny">🎙️ Click mic to speak • Faesh speaks back • Warm & friendly voice</div>
 </div>
 </div>
 
 <script>
-const API_BASE = "https://faesh.onrender.com";
-let history=[], session_state={};
-
-const chatEl=document.getElementById("chat");
-const inputEl=document.getElementById("input");
-const sendBtn=document.getElementById("sendBtn");
+const API="https://faesh.onrender.com/chat";
+const chat=document.getElementById("chat");
+const input=document.getElementById("input");
 const micBtn=document.getElementById("micBtn");
-const voiceToggle=document.getElementById("voiceToggle");
+const sendBtn=document.getElementById("sendBtn");
 
-function addMessage(who,text){
-  const row=document.createElement("div");
-  row.className="row "+(who==="you"?"you":"faesh");
-  const bubble=document.createElement("div");
-  bubble.className="bubble "+(who==="you"?"you":"faesh");
-  bubble.textContent=text;
-  row.appendChild(bubble);
-  chatEl.appendChild(row);
+let history=[],session_state={};
+const synth=window.speechSynthesis;
 
-  if(who==="faesh"){
-    const tools=document.createElement("div");
-    tools.className="tools";
-    const btn=document.createElement("button");
-    btn.className="toolBtn";
-    btn.textContent="🔊 Speak";
-    btn.onclick=()=>speak(text,true);
-    tools.appendChild(btn);
-    chatEl.appendChild(tools);
-    if(voiceToggle.checked) speak(text,false);
-  }
-  chatEl.scrollTop=chatEl.scrollHeight;
+/* ---------- CHAT ---------- */
+function add(who,text){
+  const r=document.createElement("div");
+  r.className="row "+who;
+  const b=document.createElement("div");
+  b.className="bubble";
+  b.textContent=text;
+  r.appendChild(b);
+  chat.appendChild(r);
+  chat.scrollTop=chat.scrollHeight;
+
+  if(who==="faesh") speak(text);
 }
 
-async function send(){
-  const t=inputEl.value.trim();
-  if(!t)return;
-  addMessage("you",t);
-  inputEl.value="";
-  history.push({role:"user",content:t});
-  const r=await fetch(API_BASE+"/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,messages:history,session_state})});
-  const d=await r.json();
+async function send(text){
+  add("you",text);
+  input.value="";
+  const res=await fetch(API,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({message:text,messages:history,session_state})
+  });
+  const d=await res.json();
   session_state=d.session_state||{};
-  addMessage("faesh",d.reply);
-  history.push({role:"assistant",content:d.reply});
+  add("faesh",d.reply);
 }
 
-sendBtn.onclick=send;
-inputEl.onkeydown=e=>{if(e.key==="Enter")send();};
+/* ---------- VOICE OUT ---------- */
+function speak(text){
+  if(!synth) return;
+  synth.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.rate=0.95;       // warm pacing
+  u.pitch=1.05;      // friendly tone
+  u.volume=1;
+  u.lang="en-US";
+  synth.speak(u);
+}
 
-/* === SPEECH TO TEXT === */
+/* ---------- SPEECH IN ---------- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 let recog,listening=false;
+
 if(SR){
   recog=new SR();
   recog.lang="en-US";
-  recog.onresult=e=>inputEl.value=e.results[0][0].transcript;
+  recog.onresult=e=>{
+    const t=e.results[0][0].transcript;
+    input.value=t;
+    send(t);
+  };
   recog.onend=()=>{listening=false;micBtn.classList.remove("micActive");};
 }
+
 micBtn.onclick=()=>{
-  if(!recog)return alert("Speech recognition not supported");
+  if(!recog) return alert("Speech recognition not supported");
   if(!listening){
     listening=true;
     micBtn.classList.add("micActive");
@@ -212,21 +196,21 @@ micBtn.onclick=()=>{
   }else recog.stop();
 };
 
-/* === TEXT TO SPEECH === */
-function speak(text,force){
-  if(!("speechSynthesis"in window))return;
-  if(!force && !voiceToggle.checked)return;
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  speechSynthesis.speak(u);
-}
+sendBtn.onclick=()=>{
+  const t=input.value.trim();
+  if(t) send(t);
+};
 
-/* INIT */
+input.addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();sendBtn.click();}
+});
+
+/* ---------- INIT ---------- */
 (async()=>{
-  const r=await fetch(API_BASE+"/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+  const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
   const d=await r.json();
   session_state=d.session_state||{};
-  addMessage("faesh",d.reply||"Sup 😎");
+  add("faesh",d.reply||"Hey 😊 I’m here.");
 })();
 </script>
 </body>
