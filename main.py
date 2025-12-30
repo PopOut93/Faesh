@@ -1,27 +1,20 @@
 from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-
 from ai.engine import generate_response
 
 app = FastAPI()
 
 # -------------------------
-# CORS (STABLE + LOCAL DEV)
+# CORS (FRONTEND SEPARATE)
 # -------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        # Production
-        "https://popout93.github.io",
-        "https://faesh.onrender.com",
-
-        # Local dev (React / Vite)
+        "https://popout93.github.io",     # GitHub Pages (prod)
+        "https://faesh.onrender.com",     # Render backend
         "http://localhost:3000",
         "http://localhost:5173",
-
-        # ✅ Local Live Server (THIS FIXES YOUR ISSUE)
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
+        "http://127.0.0.1:5500",          # Live Server (THIS WAS MISSING)
     ],
     allow_credentials=False,
     allow_methods=["*"],
@@ -42,7 +35,6 @@ def health():
 async def chat(request: Request):
     body = await request.json()
 
-    # Accept flexible fields from frontend
     user_message = body.get("message") or body.get("text") or body.get("input")
 
     if isinstance(user_message, dict):
@@ -52,7 +44,6 @@ async def chat(request: Request):
     session_state = body.get("session_state") or {}
     roast_level = int(body.get("roast_level", body.get("roastLevel", 0)) or 0)
 
-    # Initial greeting trigger
     if not user_message and not messages:
         messages = [{"role": "user", "content": "__INIT__"}]
     else:
@@ -68,14 +59,14 @@ async def chat(request: Request):
     return {"reply": reply, "session_state": session_state}
 
 # -------------------------
-# IMAGE UPLOAD (SAFE STUB)
+# IMAGE UPLOAD (STUB)
 # -------------------------
 @app.post("/vision")
 async def vision(file: UploadFile = File(...)):
     return {"message": "🖼️ Image received — fashion vision coming soon"}
 
 # -------------------------
-# FILE UPLOAD (SAFE STUB)
+# FILE UPLOAD (STUB)
 # -------------------------
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
