@@ -6,15 +6,22 @@ from ai.engine import generate_response
 app = FastAPI()
 
 # -------------------------
-# CORS (STABLE)
+# CORS (STABLE + LOCAL DEV)
 # -------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # Production
         "https://popout93.github.io",
         "https://faesh.onrender.com",
+
+        # Local dev (React / Vite)
         "http://localhost:3000",
         "http://localhost:5173",
+
+        # ✅ Local Live Server (THIS FIXES YOUR ISSUE)
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
     ],
     allow_credentials=False,
     allow_methods=["*"],
@@ -45,7 +52,7 @@ async def chat(request: Request):
     session_state = body.get("session_state") or {}
     roast_level = int(body.get("roast_level", body.get("roastLevel", 0)) or 0)
 
-    # If the page just loaded and we got no message, trigger greeting safely
+    # Initial greeting trigger
     if not user_message and not messages:
         messages = [{"role": "user", "content": "__INIT__"}]
     else:
